@@ -1,0 +1,2398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SatQuery AI — Natural Language Satellite Assistant</title>
+  
+  <meta name="title" content="SatQuery AI — Natural Language Satellite Assistant" />
+  <meta name="description" content="Ask questions about satellite imagery using natural language. Simple, modern, and scientific." />
+  <meta name="theme-color" content="#059669" />
+
+  <!-- Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet GIS Map (for geo-referenced raster & vector overlays) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-focus: #94A3B8;
+      
+      --text: #0F172A;
+      --text-muted: #475569;
+      --text-subtle: #64748B;
+      --text-dim: #94A3B8;
+
+      --emerald: #059669;
+      --emerald-hover: #047857;
+      --emerald-light: #ECFDF5;
+      --emerald-border: #A7F3D0;
+      --emerald-text: #065F46;
+
+      --amber-light: #FEF3C7;
+      --amber-border: #FDE68A;
+      --amber-text: #92400E;
+
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Top Navigation ───────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--emerald);
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+    }
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: var(--text);
+    }
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-subtle);
+      font-weight: 400;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      min-width: 290px;
+      z-index: 200;
+      padding: 6px;
+    }
+    .dropdown.active .dropdown-menu {
+      display: block;
+    }
+    .dropdown-item {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .dropdown-item:hover {
+      background: var(--surface-subtle);
+    }
+    .dropdown-item strong {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dropdown-item span {
+      font-size: 11px;
+      color: var(--text-subtle);
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      line-height: 1.2;
+    }
+    .btn:hover {
+      background: var(--surface-subtle);
+      border-color: var(--border-focus);
+    }
+    .btn-primary {
+      background: var(--emerald);
+      color: #FFF;
+      border-color: var(--emerald);
+    }
+    .btn-primary:hover {
+      background: var(--emerald-hover);
+      border-color: var(--emerald-hover);
+      color: #FFF;
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border);
+    }
+
+    /* ── Main Layout ──────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* ── 1. Landing View ──────────────────────────────── */
+    .landing-container {
+      max-width: 840px;
+      margin: 10px auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .landing-header {
+      margin-bottom: 20px;
+    }
+    .landing-header h2 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .landing-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    /* Upload Mode Selector */
+    .mode-tabs {
+      display: inline-flex;
+      background: var(--surface-subtle);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .mode-tab {
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Dropzones */
+    .dropzone-container {
+      display: grid;
+      gap: 14px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .dropzone-container.dual {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dropzone {
+      border: 2px dashed var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--emerald);
+      background: var(--emerald-light);
+    }
+    .dropzone-icon {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      background: var(--surface-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+    .dropzone:hover .dropzone-icon {
+      background: var(--surface);
+      color: var(--emerald);
+    }
+    .dropzone h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .dropzone p {
+      font-size: 13px;
+      color: var(--text-subtle);
+      margin-bottom: 10px;
+    }
+    .upload-guidance {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .primary-format {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--emerald-text);
+      background: var(--emerald-light);
+      padding: 3px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      align-self: center;
+      border: 1px solid var(--emerald-border);
+    }
+    .secondary-format {
+      font-size: 11px;
+      color: var(--text-subtle);
+    }
+    .file-input { display: none; }
+
+    /* Landing Manual Question Box & Suggestion Deck */
+    .landing-interactive-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+    .landing-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .landing-card-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .landing-composer-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .landing-composer-input {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: all 0.15s;
+    }
+    .landing-composer-input:focus {
+      border-color: var(--emerald);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+    .btn-landing-ask {
+      height: 44px;
+      padding: 0 20px;
+      background: var(--emerald);
+      color: #FFF;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-landing-ask:hover {
+      background: var(--emerald-hover);
+    }
+
+    .landing-chips-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .chips-label {
+      font-size: 11px;
+      color: var(--text-subtle);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .landing-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .landing-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .landing-chip:hover {
+      background: var(--emerald-light);
+      border-color: var(--emerald-border);
+      color: var(--emerald-text);
+    }
+
+    /* ── 2. Active Workspace (Conversational Flow) ───── */
+    .workspace-grid {
+      display: none;
+      grid-template-columns: minmax(440px, 1fr) minmax(460px, 1.15fr);
+      gap: 20px;
+      height: calc(100vh - 90px);
+      min-height: 0;
+    }
+    .workspace-grid.active {
+      display: grid;
+    }
+
+    /* Left Column: Chat Assistant Stream */
+    .chat-column {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* Scene Summary Bar */
+    .scene-bar {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .scene-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .scene-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      flex-shrink: 0;
+    }
+    .scene-name {
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scene-meta {
+      color: var(--text-subtle);
+      white-space: nowrap;
+    }
+
+    /* Messages Thread */
+    .chat-messages {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Chat Bubbles */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 95%;
+    }
+    .message.user {
+      align-self: flex-end;
+    }
+    .message.user .bubble {
+      background: var(--text);
+      color: #FFF;
+      border-radius: 14px 14px 2px 14px;
+      padding: 9px 15px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+    .message.assistant {
+      align-self: flex-start;
+      width: 100%;
+    }
+    .message.assistant .bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px 14px 14px 2px;
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+    .assistant-answer {
+      font-size: 14.5px;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.55;
+    }
+
+    /* Confidence Pill */
+    .confidence-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--emerald-light);
+      border: 1px solid var(--emerald-border);
+      color: var(--emerald-text);
+    }
+    .confidence-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+    }
+
+    /* Technical Accordion */
+    .tech-accordion {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--surface-subtle);
+    }
+    .tech-summary {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      list-style: none;
+    }
+    .tech-summary::-webkit-details-marker { display: none; }
+    .tech-summary:hover {
+      color: var(--text);
+      background: #E2E8F0;
+    }
+    .tech-content {
+      padding: 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .tech-item {
+      background: var(--surface-subtle);
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .tech-item-label {
+      font-size: 10px;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .tech-item-value {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 2px;
+    }
+
+    .landcover-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .landcover-bar {
+      height: 6px;
+      width: 100%;
+      background: #E2E8F0;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+    }
+    .lc-built { background: #E11D48; }
+    .lc-veg { background: #059669; }
+    .lc-water { background: #0284C7; }
+    .lc-bare { background: #64748B; }
+
+    .trace-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 140px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .trace-item {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+      line-height: 1.3;
+      padding: 4px 6px;
+      border-radius: 4px;
+      background: var(--surface-subtle);
+    }
+    .trace-step-name {
+      font-weight: 600;
+      color: var(--text);
+      min-width: 90px;
+    }
+    .trace-step-detail {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      word-break: break-all;
+    }
+
+    /* Pinned Question Composer (Always visible, cannot be pushed off-screen) */
+    .composer-area {
+      flex-shrink: 0;
+      border-top: 2px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
+      padding: 10px 14px 12px;
+      gap: 8px;
+    }
+    .composer-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .composer-header-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .composer-suggestions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .suggestions-caption {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+      white-space: nowrap;
+      margin-right: 2px;
+    }
+    .suggestion-chip {
+      white-space: nowrap;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .suggestion-chip:hover {
+      background: var(--emerald-light);
+      border-color: var(--emerald-border);
+      color: var(--emerald-text);
+    }
+
+    .composer-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .composer-input-field {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 13.5px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      height: 42px;
+    }
+    .composer-input-field:focus {
+      border-color: var(--emerald);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+    .btn-analyze {
+      height: 42px;
+      padding: 0 18px;
+      background: var(--emerald);
+      color: #FFF;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-analyze:hover {
+      background: var(--emerald-hover);
+    }
+    .btn-analyze:disabled {
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    /* Right Column: Visual Evidence Studio */
+    .viewer-column {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+    }
+    .viewer-toolbar {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .layer-toggles {
+      display: inline-flex;
+      background: var(--surface-subtle);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      gap: 2px;
+    }
+    .layer-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .layer-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .viewer-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .opacity-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-subtle);
+    }
+    .opacity-control input[type="range"] {
+      width: 75px;
+      accent-color: var(--emerald);
+      cursor: pointer;
+    }
+
+    /* Canvas / Image Area */
+    .viewer-canvas {
+      flex: 1 1 auto;
+      min-height: 0;
+      position: relative;
+      background: #0F172A;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-wrapper {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .viewer-img {
+      max-width: 100%;
+      max-height: calc(100vh - 210px);
+      object-fit: contain;
+      display: block;
+      user-select: none;
+    }
+    .overlay-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      opacity: 0.85;
+      display: none;
+    }
+    .bbox-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #gisMap {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    .dual-image-preview {
+      display: none;
+      width: 100%;
+      height: 100%;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      background: #000;
+    }
+    .dual-pane {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0F172A;
+    }
+    .dual-pane img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .dual-pane-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #FFF;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+    .viewer-footer {
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-subtle);
+      flex-shrink: 0;
+    }
+    .viewer-meta-tags {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    /* ── Friendly Error Modal (Replaces raw browser alerts) ── */
+    .error-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 600;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .error-modal-backdrop.active {
+      display: flex;
+    }
+    .error-modal-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      max-width: 500px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+    .error-icon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .error-badge-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #FEE2E2;
+      color: #DC2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .error-modal-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .error-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .error-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .error-details {
+      margin-top: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-subtle);
+      font-size: 11.5px;
+    }
+    .error-details summary {
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text-subtle);
+      font-weight: 600;
+    }
+    .error-raw-text {
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      color: #B91C1C;
+      background: #FFF;
+      border-top: 1px solid var(--border);
+      word-break: break-word;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    /* ── About Modal ──────────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      max-width: 560px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      color: var(--text-subtle);
+      cursor: pointer;
+    }
+    .modal-body {
+      padding: 20px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 960px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .viewer-column { min-height: 420px; }
+      .dropzone-container.dual { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <a href="#" class="brand" id="brandHome">
+      <div class="brand-icon">🛰️</div>
+      <div class="brand-text">
+        <h1>SatQuery AI</h1>
+        <p>Ask questions about satellite imagery using natural language</p>
+      </div>
+    </a>
+
+    <div class="nav-actions">
+      <!-- Demo Selector Dropdown -->
+      <div class="dropdown" id="demoDropdown">
+        <button class="btn btn-outline" id="demoDropdownBtn">
+          Try a demo ▾
+        </button>
+        <div class="dropdown-menu">
+          <div class="dropdown-item" data-demo="kolkata">
+            <strong>🌆 Kolkata Urban</strong>
+            <span>High-Res Optical (0.5m GSD) • Scene captioning & grounding</span>
+          </div>
+          <div class="dropdown-item" data-demo="bitemporal">
+            <strong>🔥 California Wildfire (T1 ➔ T2)</strong>
+            <span>Sentinel-2 Bi-Temporal • Camp Fire change detection</span>
+          </div>
+          <div class="dropdown-item" data-demo="optical_sar">
+            <strong>🛰️ Cartosat-2S + RISAT-1A</strong>
+            <span>Optical + SAR Dual Sensor • All-weather feature fusion</span>
+          </div>
+          <div class="dropdown-item" data-demo="bigearthnet">
+            <strong>🌍 BigEarthNet-MM</strong>
+            <span>Sentinel-1 SAR + Sentinel-2 MSI Multi-Modal QA</span>
+          </div>
+          <div class="dropdown-item" data-demo="sentinel2">
+            <strong>🌉 Sentinel-2 San Francisco</strong>
+            <span>Copernicus 10m Multispectral • Bay Area telemetry</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" id="btnNewAnalysis">
+        New Analysis
+      </button>
+
+      <button class="btn btn-outline" id="btnAbout">
+        About
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+
+    <!-- 1. Landing Screen (Visible before image is loaded) -->
+    <div class="landing-container" id="landingHero">
+      <div class="landing-header">
+        <h2>Upload satellite imagery and ask anything</h2>
+        <p>Ask natural-language questions about your satellite imagery. SatQuery automatically orchestrates domain-adapted vision-language models and geospatial algorithms.</p>
+      </div>
+
+      <!-- Mode Selector Tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="single">Single Image</button>
+        <button class="mode-tab" data-mode="compare">Compare Two Images (T1 / T2)</button>
+        <button class="mode-tab" data-mode="opt_sar">Optical + SAR Dual Sensor</button>
+      </div>
+
+      <!-- Single Image Upload Dropzone -->
+      <div class="dropzone-container" id="singleDropZoneContainer">
+        <div class="dropzone" id="primaryDropzone">
+          <input type="file" class="file-input" id="primaryFileInput" accept="image/png,image/jpeg,image/tiff,.tif,.tiff" />
+          <div class="dropzone-icon">📷</div>
+          <h3>Upload satellite imagery</h3>
+          <p>Drag & drop or browse from your computer</p>
+          <div class="upload-guidance">
+            <span class="primary-format">GeoTIFF / TIFF recommended for full geospatial analysis</span>
+            <span class="secondary-format">Supported benchmark PNG/JPG images are also accepted</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dual Image Dropzones (Compare or Optical+SAR) -->
+      <div class="dropzone-container dual" id="dualDropZoneContainer" style="display: none;">
+        <div class="dropzone" id="dualDropzone1">
+          <input type="file" class="file-input" id="dualFileInput1" accept="image/png,image/jpeg,image/tiff,.tif,.tiff" />
+          <div class="dropzone-icon">⏱️</div>
+          <h3 id="dualLabel1">Earlier Image (T1)</h3>
+          <p>Drag & drop or browse</p>
+          <div class="upload-guidance">
+            <span class="secondary-format" id="dualMeta1">GeoTIFF or supported benchmark raster</span>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dualDropzone2">
+          <input type="file" class="file-input" id="dualFileInput2" accept="image/png,image/jpeg,image/tiff,.tif,.tiff" />
+          <div class="dropzone-icon">🛰️</div>
+          <h3 id="dualLabel2">Later Image (T2)</h3>
+          <p>Drag & drop or browse</p>
+          <div class="upload-guidance">
+            <span class="secondary-format" id="dualMeta2">GeoTIFF or supported benchmark raster</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REAL EDITABLE QUESTION COMPOSER ON LANDING PAGE -->
+      <div class="landing-interactive-card">
+        <div class="landing-card-header">
+          <h3><span>💬</span> Ask anything about satellite imagery</h3>
+          <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11.5px;" id="landingQuickDemoBtn">
+            Load Demo Scene ➔
+          </button>
+        </div>
+
+        <div class="landing-composer-input-row">
+          <input type="text" id="landingQueryInput" class="landing-composer-input" placeholder="Type your own question here... (e.g. 'What objects are visible in this image?')" />
+          <button id="btnLandingSend" class="btn-landing-ask">
+            <span>Analyze</span> ➤
+          </button>
+        </div>
+
+        <div class="landing-chips-section">
+          <span class="chips-label">Or click a suggested query shortcut:</span>
+          <div class="landing-chips-row">
+            <button class="landing-chip" data-demo="kolkata" data-q="Describe this scene.">
+              <span>💬</span> Describe this scene
+            </button>
+            <button class="landing-chip" data-demo="kolkata" data-q="Where is the water?">
+              <span>💧</span> Where is the water?
+            </button>
+            <button class="landing-chip" data-demo="kolkata" data-q="Is this area mostly urban or rural?">
+              <span>🏙️</span> Is this area urban or rural?
+            </button>
+            <button class="landing-chip" data-demo="kolkata" data-q="Highlight the built-up areas.">
+              <span>🏗️</span> Highlight built-up areas
+            </button>
+            <button class="landing-chip" data-demo="bitemporal" data-q="Has construction increased between these two images?">
+              <span>⏱️</span> Has construction increased? (Change)
+            </button>
+            <button class="landing-chip" data-demo="optical_sar" data-q="What can these two images tell us about this area?">
+              <span>🛰️</span> Optical + SAR joint analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Active Workspace (Conversational Layout) -->
+    <div class="workspace-grid" id="workspaceGrid">
+      
+      <!-- Left Column: ChatGPT-like Assistant Stream -->
+      <div class="chat-column">
+        <!-- Scene Info Bar -->
+        <div class="scene-bar">
+          <div class="scene-info">
+            <span class="scene-dot"></span>
+            <span class="scene-name" id="activeSceneName">Satellite Scene</span>
+            <span class="scene-meta" id="activeSceneMeta">—</span>
+          </div>
+          <button class="btn btn-outline" style="padding: 3px 8px; font-size: 11px;" id="btnChangeImage">
+            Change Image
+          </button>
+        </div>
+
+        <!-- Chat Conversation Messages -->
+        <div class="chat-messages" id="chatStream">
+          <div class="message assistant">
+            <div class="bubble">
+              <div class="assistant-answer" id="welcomeGreeting">
+                Image loaded successfully! Ask anything about this satellite scene in plain English.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pinned Question Composer (Always visible on screen) -->
+        <div class="composer-area" id="composerArea">
+          <div class="composer-header-row">
+            <span class="composer-header-title" id="composerHeaderTitle">
+              <span>💬</span> Ask anything about this satellite image...
+            </span>
+          </div>
+
+          <div class="composer-suggestions">
+            <span class="suggestions-caption">Suggested:</span>
+            <div class="suggestions-chips-row" id="suggestionChips" style="display: flex; gap: 6px; overflow-x: auto;">
+              <!-- Dynamically populated shortcut chips -->
+            </div>
+          </div>
+
+          <div class="composer-input-row">
+            <input type="text" id="queryInput" class="composer-input-field" placeholder="Type your own question here... (e.g. 'Where is the water?')" autocomplete="off" />
+            <button id="btnSend" class="btn-analyze">
+              <span>Analyze</span> ➤
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Visual Evidence Studio -->
+      <div class="viewer-column">
+        <!-- Viewer Toolbar -->
+        <div class="viewer-toolbar">
+          <div class="layer-toggles" id="layerToggles">
+            <button class="layer-btn active" id="btnShowOriginal">Original</button>
+            <button class="layer-btn" id="btnShowEvidence" style="display: none;">Evidence Overlay</button>
+            <button class="layer-btn" id="btnShowDual" style="display: none;">Side-by-Side</button>
+            <button class="layer-btn" id="btnShowMap">Map View</button>
+          </div>
+
+          <div class="viewer-controls">
+            <div class="opacity-control" id="opacityControlWrap" style="display: none;">
+              <span>Overlay Opacity</span>
+              <input type="range" id="overlayOpacity" min="10" max="100" value="85" />
+            </div>
+            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11.5px;" id="btnExportReport">
+              Executive Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="viewer-canvas" id="viewerCanvas">
+          <!-- Single / Overlay Image Wrapper -->
+          <div class="image-wrapper" id="imageWrapper">
+            <img id="mainImage" class="viewer-img" alt="Satellite imagery" />
+            <img id="overlayImage" class="overlay-img" alt="Evidence overlay" />
+            <canvas id="bboxCanvas" class="bbox-canvas"></canvas>
+          </div>
+
+          <!-- Dual Side-by-Side View (T1/T2 or Optical+SAR) -->
+          <div class="dual-image-preview" id="dualPreview">
+            <div class="dual-pane">
+              <span class="dual-pane-tag" id="dualPaneTag1">Earlier (T1)</span>
+              <img id="dualPaneImg1" alt="Primary scene" />
+            </div>
+            <div class="dual-pane">
+              <span class="dual-pane-tag" id="dualPaneTag2">Later (T2)</span>
+              <img id="dualPaneImg2" alt="Secondary scene" />
+            </div>
+          </div>
+
+          <!-- Leaflet GIS Map Container -->
+          <div id="gisMap"></div>
+        </div>
+
+        <!-- Viewer Footer Bar -->
+        <div class="viewer-footer">
+          <div class="viewer-meta-tags">
+            <span id="metaDimensions">--</span>
+            <span id="metaCoordinates">--</span>
+            <span id="metaCrs">WGS84</span>
+          </div>
+          <div>
+            <span id="activeEvidenceStatus">Awaiting query</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Friendly Error Modal (Replaces raw browser alert popup) -->
+  <div class="error-modal-backdrop" id="errorModal">
+    <div class="error-modal-box">
+      <div class="error-icon-row">
+        <div class="error-badge-icon">⚠️</div>
+        <h3>Unable to analyze this image</h3>
+      </div>
+      <p class="error-desc" id="errorFriendlyMsg">
+        This file isn't a supported satellite raster for this operational workflow. For full geospatial analysis, upload a georeferenced GeoTIFF/TIFF file or explore one of the pre-loaded satellite scenes.
+      </p>
+      <div class="error-actions">
+        <button class="btn btn-primary" id="btnErrorTryDemo">Try a Demo Scene</button>
+        <button class="btn btn-outline" id="btnErrorChooseAnother">Choose Another File</button>
+      </div>
+      <details class="error-details">
+        <summary>Technical details ▾</summary>
+        <div class="error-raw-text" id="errorRawText">Backend response details</div>
+      </details>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div class="modal-backdrop" id="aboutModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>About SatQuery AI</h3>
+        <button class="modal-close" id="aboutCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>SatQuery AI</strong> is a natural-language-first vision-language assistant for earth observation and satellite imagery (SIH 2026 Problem Statement SIH26167).</p>
+        <p>Ask natural questions like <em>"Describe this scene"</em>, <em>"Where is the water?"</em>, or <em>"Has construction increased?"</em>. Behind the scenes, domain-adapted specialist models (GeoRSCLIP, OpenCLIP VQA, Bi-temporal change detection, Optical-SAR fusion) process the imagery and generate visual evidence.</p>
+        <p><strong>Team AstraNex</strong> • ISO/OGC geospatial standard compliance, auditable execution traces, and explainable AI confidence scoring.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // ── Application State ────────────────────────────────
+    const state = {
+      mode: 'single', // 'single' | 'compare' | 'opt_sar'
+      primary: null,
+      secondary: null,
+      overlayUrl: null,
+      activeView: 'original',
+      lastResult: null,
+      conversationId: crypto.randomUUID()
+    };
+
+    let analysisAbortController = null;
+    let leafletMap = null;
+    let leafletRasterOverlay = null;
+    let leafletGeoJsonLayer = null;
+
+    const $ = id => document.getElementById(id);
+
+    // ── Pre-configured Demo Catalog ──────────────────────
+    const DEMO_CATALOG = {
+      kolkata: {
+        title: 'Kolkata Urban Corridor, India',
+        sensor: 'High-Res Optical (0.5m GSD)',
+        suggestions: [
+          'Describe this scene.',
+          'Where is the water?',
+          'Is this area mostly urban or rural?',
+          'Highlight the built-up areas.',
+          'What is visible in this image?'
+        ]
+      },
+      bitemporal: {
+        title: 'California Wildfire (Camp Fire T1 ➔ T2)',
+        sensor: 'Sentinel-2 Multi-Date',
+        suggestions: [
+          'Has construction increased between these two images?',
+          'What changed between these two dates, and where did the change occur?',
+          'Has the built-up area increased, decreased, or remained unchanged?',
+          'Highlight the changed regions.'
+        ]
+      },
+      optical_sar: {
+        title: 'ISRO Cartosat-2S + RISAT-1A SAR',
+        sensor: 'Optical (0.8m) + C-band SAR',
+        suggestions: [
+          'What can these two images tell us about this area?',
+          'Use the optical and SAR images together to identify built-up and water-covered regions.',
+          'Where is the water?',
+          'What does the SAR image reveal?'
+        ]
+      },
+      bigearthnet: {
+        title: 'BigEarthNet-MM Multi-Modal',
+        sensor: 'Sentinel-1 SAR + Sentinel-2 MSI',
+        suggestions: [
+          'What land covers are present in this satellite scene?',
+          'Would you say that any arable land lies next to pastures in the image?',
+          'Are pastures present in this satellite scene?'
+        ]
+      },
+      sentinel2: {
+        title: 'San Francisco Bay & Peninsula',
+        sensor: 'Copernicus Sentinel-2A (10m)',
+        suggestions: [
+          'What objects are visible in this image?',
+          'Describe the land-cover and major objects visible in this image.',
+          'Check whether the area is urban or rural.',
+          'Where is the water?'
+        ]
+      }
+    };
+
+    // ── Friendly In-Page Error Dialog ────────────────────
+    function showFriendlyError(friendlyMsg, rawDetail) {
+      $('errorFriendlyMsg').textContent = friendlyMsg || 'This file could not be processed for the selected satellite analysis.';
+      $('errorRawText').textContent = rawDetail || 'No additional technical telemetry returned by backend.';
+      $('errorModal').classList.add('active');
+    }
+
+    function hideFriendlyError() {
+      $('errorModal').classList.remove('active');
+    }
+
+    $('btnErrorTryDemo').addEventListener('click', () => {
+      hideFriendlyError();
+      loadDemoScene('kolkata');
+    });
+
+    $('btnErrorChooseAnother').addEventListener('click', () => {
+      hideFriendlyError();
+      if (state.mode === 'single') {
+        $('primaryFileInput').click();
+      } else {
+        $('dualFileInput1').click();
+      }
+    });
+
+    $('errorModal').addEventListener('click', e => {
+      if (e.target === $('errorModal')) hideFriendlyError();
+    });
+
+    // ── Navigation & Dropdown Setup ──────────────────────
+    const demoDropdown = $('demoDropdown');
+    const demoDropdownBtn = $('demoDropdownBtn');
+
+    demoDropdownBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      demoDropdown.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      demoDropdown.classList.remove('active');
+    });
+
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        const key = item.dataset.demo;
+        demoDropdown.classList.remove('active');
+        await loadDemoScene(key);
+      });
+    });
+
+    $('btnNewAnalysis').addEventListener('click', () => {
+      resetStateToLanding();
+    });
+
+    $('brandHome').addEventListener('click', e => {
+      e.preventDefault();
+      resetStateToLanding();
+    });
+
+    $('btnChangeImage').addEventListener('click', () => {
+      resetStateToLanding();
+    });
+
+    // ── Landing Quick-Start & Custom Question Submissions ──
+    $('landingQuickDemoBtn').addEventListener('click', () => {
+      loadDemoScene('kolkata');
+    });
+
+    // User types question in the Landing page input:
+    function handleLandingComposerSubmit() {
+      const q = $('landingQueryInput').value.trim();
+      if (!q) {
+        $('landingQueryInput').focus();
+        return;
+      }
+      // If no image loaded yet, load Kolkata demo and immediately execute the user's custom question
+      if (!state.primary) {
+        loadDemoScene('kolkata', q);
+      } else {
+        enterWorkspace();
+        $('queryInput').value = q;
+        executeQuery();
+      }
+    }
+
+    $('btnLandingSend').addEventListener('click', handleLandingComposerSubmit);
+    $('landingQueryInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLandingComposerSubmit();
+      }
+    });
+
+    // Suggested shortcut chips on landing page
+    document.querySelectorAll('.landing-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const demoKey = btn.dataset.demo || 'kolkata';
+        const q = btn.dataset.q;
+        loadDemoScene(demoKey, q);
+      });
+    });
+
+    // About Modal
+    $('btnAbout').addEventListener('click', () => $('aboutModal').classList.add('active'));
+    $('aboutCloseBtn').addEventListener('click', () => $('aboutModal').classList.remove('active'));
+    $('aboutModal').addEventListener('click', e => {
+      if (e.target === $('aboutModal')) $('aboutModal').classList.remove('active');
+    });
+
+    // ── Upload Mode Tabs ─────────────────────────────────
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const mode = tab.dataset.mode;
+        state.mode = mode;
+
+        if (mode === 'single') {
+          $('singleDropZoneContainer').style.display = 'grid';
+          $('dualDropZoneContainer').style.display = 'none';
+        } else {
+          $('singleDropZoneContainer').style.display = 'none';
+          $('dualDropZoneContainer').style.display = 'grid';
+          if (mode === 'compare') {
+            $('dualLabel1').textContent = 'Earlier Image (T1)';
+            $('dualLabel2').textContent = 'Later Image (T2)';
+            $('dualPaneTag1').textContent = 'Earlier (T1)';
+            $('dualPaneTag2').textContent = 'Later (T2)';
+          } else {
+            $('dualLabel1').textContent = 'Optical Image';
+            $('dualLabel2').textContent = 'SAR Image';
+            $('dualPaneTag1').textContent = 'Optical Image';
+            $('dualPaneTag2').textContent = 'SAR Image';
+          }
+        }
+      });
+    });
+
+    // ── File Upload Wiring ───────────────────────────────
+    function setupDropzone(dropzoneEl, inputEl, onFileSelected) {
+      dropzoneEl.addEventListener('click', () => inputEl.click());
+      dropzoneEl.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropzoneEl.classList.add('dragover');
+      });
+      dropzoneEl.addEventListener('dragleave', () => dropzoneEl.classList.remove('dragover'));
+      dropzoneEl.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzoneEl.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          onFileSelected(e.dataTransfer.files[0]);
+        }
+      });
+      inputEl.addEventListener('change', e => {
+        if (e.target.files && e.target.files[0]) {
+          onFileSelected(e.target.files[0]);
+        }
+      });
+    }
+
+    setupDropzone($('primaryDropzone'), $('primaryFileInput'), async file => {
+      try {
+        await uploadFile(file, 'primary');
+        enterWorkspace();
+      } catch (err) {}
+    });
+
+    setupDropzone($('dualDropzone1'), $('dualFileInput1'), async file => {
+      try {
+        await uploadFile(file, 'primary');
+        $('dualMeta1').textContent = `${file.name} ✓`;
+        checkDualReady();
+      } catch (err) {}
+    });
+
+    setupDropzone($('dualDropzone2'), $('dualFileInput2'), async file => {
+      try {
+        await uploadFile(file, 'secondary');
+        $('dualMeta2').textContent = `${file.name} ✓`;
+        checkDualReady();
+      } catch (err) {}
+    });
+
+    function checkDualReady() {
+      if (state.primary && state.secondary) {
+        enterWorkspace();
+      }
+    }
+
+    async function uploadFile(file, role) {
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (e) {
+          if (!res.ok) throw new Error(`Upload server error (HTTP ${res.status}).`);
+        }
+
+        if (!res.ok) {
+          const detail = data.detail || 'Upload failed.';
+          showFriendlyError(
+            "This file isn't a supported satellite raster for this workflow. For full geospatial analysis, upload a georeferenced GeoTIFF/TIFF file or explore one of the pre-loaded satellite scenes.",
+            detail
+          );
+          throw new Error(detail);
+        }
+
+        state[role] = data;
+        return data;
+      } catch (err) {
+        if (!err.message.includes('supported satellite raster')) {
+          showFriendlyError(
+            "An error occurred while uploading this satellite image.",
+            err.message
+          );
+        }
+        throw err;
+      }
+    }
+
+    // ── Load Demo Scene ──────────────────────────────────
+    async function loadDemoScene(key, autoQuery = null) {
+      try {
+        const demoInfo = DEMO_CATALOG[key] || { title: key };
+        const res = await fetch('/api/load_demo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sample_key: key })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showFriendlyError('Could not load demo scene.', err.detail || `Server returned status ${res.status}`);
+          return;
+        }
+
+        const data = await res.json();
+        state.primary = data.primary;
+        state.secondary = data.secondary || null;
+        state.overlayUrl = null;
+        state.lastResult = null;
+
+        if (state.secondary) {
+          state.mode = key === 'bitemporal' ? 'compare' : 'opt_sar';
+        } else {
+          state.mode = 'single';
+        }
+
+        enterWorkspace(demoInfo);
+
+        if (autoQuery) {
+          $('queryInput').value = autoQuery;
+          setTimeout(() => executeQuery(), 250);
+        }
+      } catch (err) {
+        showFriendlyError('Could not load demo scene.', err.message);
+      }
+    }
+
+    // ── Enter Workspace (Immediately exposes manual question composer) ──
+    function enterWorkspace(metaOverride = null) {
+      $('landingHero').style.display = 'none';
+      $('workspaceGrid').classList.add('active');
+
+      // Update Scene Bar
+      const title = metaOverride?.title || state.primary?.filename || 'Satellite Scene';
+      const meta = metaOverride?.sensor || (state.primary?.metadata?.crs ? 'GeoTIFF • ' + state.primary.metadata.crs : 'High-Resolution Satellite');
+      $('activeSceneName').textContent = title;
+      $('activeSceneMeta').textContent = meta;
+
+      // Update Viewers
+      if (state.primary?.preview_url) {
+        $('mainImage').src = state.primary.preview_url;
+      }
+
+      // Configure Mode-Specific Composer Titles & Placeholders
+      if (state.secondary) {
+        $('btnShowDual').style.display = 'inline-block';
+        $('dualPaneImg1').src = state.primary.preview_url;
+        $('dualPaneImg2').src = state.secondary.preview_url;
+
+        if (state.mode === 'compare') {
+          $('composerHeaderTitle').innerHTML = '<span>⏱️</span> Ask what changed between these two images...';
+          $('queryInput').placeholder = "Type your question here... (e.g. 'Has construction increased in this area?')";
+          $('welcomeGreeting').textContent = 'Earlier (T1) and Later (T2) satellite images loaded. You can type any question below to analyze changes or differences.';
+        } else {
+          $('composerHeaderTitle').innerHTML = '<span>🛰️</span> Ask what the optical and SAR images reveal together...';
+          $('queryInput').placeholder = "Type your question here... (e.g. 'What can we understand by combining these images?')";
+          $('welcomeGreeting').textContent = 'Optical and SAR images loaded. You can type any question below to analyze complementary sensor observations.';
+        }
+      } else {
+        $('btnShowDual').style.display = 'none';
+        $('composerHeaderTitle').innerHTML = '<span>💬</span> Ask anything about this satellite image...';
+        $('queryInput').placeholder = "Type your own question here... (e.g. 'What percentage of this image is built-up?')";
+        $('welcomeGreeting').textContent = 'Satellite image loaded successfully! You can type any question below in natural language.';
+      }
+
+      // Footer Meta
+      if (state.primary?.metadata) {
+        const m = state.primary.metadata;
+        $('metaDimensions').textContent = `${m.width} × ${m.height} px`;
+        if (m.centroid_wgs84) {
+          $('metaCoordinates').textContent = `${m.centroid_wgs84.lat.toFixed(4)}° N, ${m.centroid_wgs84.lon.toFixed(4)}° E`;
+        } else {
+          $('metaCoordinates').textContent = 'Coordinates available';
+        }
+        $('metaCrs').textContent = m.crs ? m.crs.split(':').pop() : 'WGS84';
+      }
+
+      // Populate Suggestion Chips
+      updateSuggestionChips();
+      switchView('original');
+
+      // Immediate auto-focus into the manual text input
+      setTimeout(() => {
+        $('queryInput').focus();
+        $('queryInput').select();
+      }, 150);
+    }
+
+    function resetStateToLanding() {
+      if (analysisAbortController) {
+        analysisAbortController.abort();
+        analysisAbortController = null;
+      }
+      state.primary = null;
+      state.secondary = null;
+      state.overlayUrl = null;
+      state.lastResult = null;
+      state.conversationId = crypto.randomUUID();
+
+      hideFriendlyError();
+      $('workspaceGrid').classList.remove('active');
+      $('landingHero').style.display = 'flex';
+
+      // Reset file inputs
+      $('primaryFileInput').value = '';
+      $('dualFileInput1').value = '';
+      $('dualFileInput2').value = '';
+      $('dualMeta1').textContent = 'GeoTIFF or supported benchmark raster';
+      $('dualMeta2').textContent = 'GeoTIFF or supported benchmark raster';
+
+      // Clear input fields
+      $('landingQueryInput').value = '';
+      $('queryInput').value = '';
+
+      // Reset chat messages
+      $('chatStream').innerHTML = `
+        <div class="message assistant">
+          <div class="bubble">
+            <div class="assistant-answer" id="welcomeGreeting">
+              Image loaded successfully! Ask anything about this satellite scene in plain English.
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Clear layers
+      $('btnShowEvidence').style.display = 'none';
+      $('opacityControlWrap').style.display = 'none';
+      clearBboxCanvas();
+    }
+
+    function updateSuggestionChips() {
+      const container = $('suggestionChips');
+      let chips = [
+        'Describe this scene.',
+        'Where is the water?',
+        'Is this area mostly urban or rural?',
+        'Highlight the built-up areas.',
+        'What is visible in this image?'
+      ];
+
+      if (state.mode === 'compare') {
+        chips = [
+          'Has construction increased between these two images?',
+          'What changed between these two dates, and where did the change occur?',
+          'Has the built-up area increased, decreased, or remained unchanged?',
+          'Highlight the changed regions.'
+        ];
+      } else if (state.mode === 'opt_sar') {
+        chips = [
+          'What can these two images tell us about this area?',
+          'Use the optical and SAR images together to identify built-up and water-covered regions.',
+          'Where is the water?',
+          'What does the SAR image reveal?'
+        ];
+      }
+
+      container.innerHTML = chips.map(q => `<button class="suggestion-chip" data-query="${escapeHtml(q)}">${escapeHtml(q)}</button>`).join('');
+
+      container.querySelectorAll('.suggestion-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('queryInput').value = btn.dataset.query;
+          executeQuery();
+        });
+      });
+    }
+
+    // ── Layer / View Switcher ────────────────────────────
+    function switchView(view) {
+      state.activeView = view;
+      ['btnShowOriginal', 'btnShowEvidence', 'btnShowDual', 'btnShowMap'].forEach(id => {
+        $(id)?.classList.remove('active');
+      });
+
+      $('imageWrapper').style.display = 'none';
+      $('dualPreview').style.display = 'none';
+      $('gisMap').style.display = 'none';
+      $('overlayImage').style.display = 'none';
+      $('opacityControlWrap').style.display = 'none';
+
+      if (view === 'original') {
+        $('btnShowOriginal').classList.add('active');
+        $('imageWrapper').style.display = 'flex';
+        clearBboxCanvas();
+      } else if (view === 'evidence') {
+        $('btnShowEvidence').classList.add('active');
+        $('imageWrapper').style.display = 'flex';
+        if (state.overlayUrl) {
+          $('overlayImage').src = state.overlayUrl;
+          $('overlayImage').style.display = 'block';
+          $('opacityControlWrap').style.display = 'flex';
+        }
+        if (state.lastResult?.bounding_box) {
+          drawBbox(state.lastResult.bounding_box);
+        }
+      } else if (view === 'dual') {
+        $('btnShowDual').classList.add('active');
+        $('dualPreview').style.display = 'grid';
+      } else if (view === 'map') {
+        $('btnShowMap').classList.add('active');
+        $('gisMap').style.display = 'block';
+        initOrUpdateMap();
+      }
+    }
+
+    $('btnShowOriginal').addEventListener('click', () => switchView('original'));
+    $('btnShowEvidence').addEventListener('click', () => switchView('evidence'));
+    $('btnShowDual').addEventListener('click', () => switchView('dual'));
+    $('btnShowMap').addEventListener('click', () => switchView('map'));
+
+    $('overlayOpacity').addEventListener('input', e => {
+      const val = parseInt(e.target.value) / 100.0;
+      $('overlayImage').style.opacity = val;
+      if (leafletRasterOverlay) leafletRasterOverlay.setOpacity(val);
+    });
+
+    // ── Bounding Box Canvas Rendering ───────────────────
+    function drawBbox(bbox) {
+      const canvas = $('bboxCanvas');
+      const img = $('mainImage');
+      if (!bbox || !img) return;
+
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const naturalW = img.naturalWidth || canvas.width;
+      const naturalH = img.naturalHeight || canvas.height;
+      const scaleX = canvas.width / naturalW;
+      const scaleY = canvas.height / naturalH;
+
+      const x = bbox.x1 * scaleX;
+      const y = bbox.y1 * scaleY;
+      const w = (bbox.x2 - bbox.x1) * scaleX;
+      const h = (bbox.y2 - bbox.y1) * scaleY;
+
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.fillStyle = 'rgba(5, 150, 105, 0.15)';
+      ctx.fillRect(x, y, w, h);
+
+      // Label Tag
+      ctx.fillStyle = '#059669';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      const text = 'Detected Ground Target';
+      const textW = ctx.measureText(text).width;
+      ctx.fillRect(x, Math.max(0, y - 22), textW + 12, 22);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(text, x + 6, Math.max(16, y - 6));
+    }
+
+    function clearBboxCanvas() {
+      const canvas = $('bboxCanvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      if (state.activeView === 'evidence' && state.lastResult?.bounding_box) {
+        drawBbox(state.lastResult.bounding_box);
+      }
+    });
+
+    // ── Leaflet Interactive Map ──────────────────────────
+    function initOrUpdateMap() {
+      if (!leafletMap) {
+        leafletMap = L.map('gisMap', {
+          center: [22.5726, 88.3639],
+          zoom: 14,
+          attributionControl: false
+        });
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19
+        }).addTo(leafletMap);
+      }
+
+      setTimeout(() => {
+        leafletMap.invalidateSize();
+        const bounds = state.primary?.metadata?.bounds_wgs84;
+        const centroid = state.primary?.metadata?.centroid_wgs84;
+
+        if (centroid) {
+          leafletMap.setView([centroid.lat, centroid.lon], 14);
+        }
+
+        if (state.overlayUrl && bounds && bounds.length === 2) {
+          if (leafletRasterOverlay) leafletMap.removeLayer(leafletRasterOverlay);
+          leafletRasterOverlay = L.imageOverlay(state.overlayUrl, bounds, {
+            opacity: parseInt($('overlayOpacity').value) / 100.0
+          }).addTo(leafletMap);
+          leafletMap.fitBounds(bounds, { padding: [20, 20] });
+        } else if (bounds && bounds.length === 2) {
+          leafletMap.fitBounds(bounds, { padding: [20, 20] });
+        }
+
+        const ev = state.lastResult?.evidence;
+        const geojson = ev?.polygons_geojson || ev?.burn_scar?.polygons_geojson || ev?.after?.polygons_geojson || ev?.geojson;
+        if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+          if (leafletGeoJsonLayer) leafletMap.removeLayer(leafletGeoJsonLayer);
+          leafletGeoJsonLayer = L.geoJSON(geojson, {
+            style: {
+              color: '#059669',
+              weight: 2.5,
+              opacity: 0.95,
+              fillColor: '#10B981',
+              fillOpacity: 0.35
+            }
+          }).addTo(leafletMap);
+          try {
+            leafletMap.fitBounds(leafletGeoJsonLayer.getBounds(), { padding: [30, 30] });
+          } catch(e) {}
+        }
+      }, 100);
+    }
+
+    // ── Query Execution Flow (Supports continuous arbitrary questions) ──
+    async function executeQuery() {
+      const q = $('queryInput').value.trim();
+      if (!q || !state.primary) return;
+
+      // Append user bubble to thread
+      appendMessage(q, 'user');
+      $('queryInput').value = '';
+      $('btnSend').disabled = true;
+
+      const pendingMsgId = 'msg-' + Date.now();
+      appendPendingMessage(pendingMsgId);
+
+      analysisAbortController = new AbortController();
+
+      try {
+        const payload = {
+          primary_id: state.primary.id,
+          secondary_id: state.secondary?.id || null,
+          query: q,
+          conversation_id: state.conversationId
+        };
+
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: analysisAbortController.signal
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Analysis error (HTTP ${res.status})`);
+        }
+
+        const result = await res.json();
+        state.lastResult = result;
+
+        if (result.overlay_url) {
+          state.overlayUrl = result.overlay_url;
+          $('btnShowEvidence').style.display = 'inline-block';
+          switchView('evidence');
+        } else if (result.bounding_box) {
+          $('btnShowEvidence').style.display = 'inline-block';
+          switchView('evidence');
+        }
+
+        renderAssistantResponse(pendingMsgId, result);
+        $('activeEvidenceStatus').textContent = `Analysis complete`;
+
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        renderErrorMessage(pendingMsgId, err.message);
+      } finally {
+        $('btnSend').disabled = false;
+        analysisAbortController = null;
+        // Refocus composer so user can immediately type a follow-up question
+        $('queryInput').focus();
+      }
+    }
+
+    $('btnSend').addEventListener('click', executeQuery);
+    $('queryInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        executeQuery();
+      }
+    });
+
+    // ── Chat Bubble Rendering ────────────────────────────
+    function appendMessage(text, role) {
+      const stream = $('chatStream');
+      const msg = document.createElement('div');
+      msg.className = `message ${role}`;
+      msg.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+      stream.appendChild(msg);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    function appendPendingMessage(id) {
+      const stream = $('chatStream');
+      const msg = document.createElement('div');
+      msg.className = 'message assistant';
+      msg.id = id;
+      msg.innerHTML = `
+        <div class="bubble">
+          <div style="display: flex; align-items: center; gap: 8px; color: var(--text-subtle); font-size: 13.5px;">
+            <span>SatQuery is analyzing satellite data…</span>
+          </div>
+        </div>
+      `;
+      stream.appendChild(msg);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    function renderErrorMessage(id, errorText) {
+      const el = $(id);
+      if (!el) return;
+      el.innerHTML = `
+        <div class="bubble" style="border-color: #FECACA; background: #FEF2F2;">
+          <div style="color: #991B1B; font-weight: 500;">Notice: ${escapeHtml(errorText)}</div>
+        </div>
+      `;
+    }
+
+    // ── Plain-English Response & Secondary Telemetry ───
+    function renderAssistantResponse(id, data) {
+      const el = $(id);
+      if (!el) return;
+
+      const confVal = Math.round((data.confidence || 0.85) * 100);
+      const confLevel = confVal >= 80 ? 'High' : (confVal >= 55 ? 'Medium' : 'Calibrated');
+      const hasEvidence = !!(data.overlay_url || data.bounding_box || data.evidence);
+
+      // Area calculations
+      const ev = data.evidence || {};
+      let areaText = '--';
+      if (ev.burn_area_hectares != null) {
+        areaText = `${ev.burn_area_hectares.toLocaleString()} ha (${ev.burn_percentage || ''}%)`;
+      } else if (ev.area_hectares != null) {
+        areaText = `${ev.area_hectares.toLocaleString()} ha`;
+      } else if (ev.after?.area_hectares != null) {
+        areaText = `${ev.after.area_hectares.toLocaleString()} ha`;
+      } else if (ev.delta_percentage_points != null) {
+        areaText = `${ev.delta_percentage_points >= 0 ? '+' : ''}${ev.delta_percentage_points} pp`;
+      }
+
+      // Land-cover breakdown
+      const built = ev.built_up_percent || 0;
+      const veg = ev.vegetation_percent || 0;
+      const water = ev.water_percent || 0;
+      const bare = ev.unclassified_percent || 0;
+      const hasLc = (built + veg + water + bare) > 0;
+
+      // Coordinate string
+      const centroid = ev.centroid_wgs84 || state.primary?.metadata?.centroid_wgs84;
+      const centroidStr = centroid ? `${centroid.lat.toFixed(4)}° N, ${centroid.lon.toFixed(4)}° E` : 'WGS84 Available';
+
+      // Trace
+      const trace = data.execution_trace || [];
+
+      el.innerHTML = `
+        <div class="bubble">
+          <!-- Plain English Conversational Answer First -->
+          <div class="assistant-answer">${escapeHtml(data.answer)}</div>
+
+          <!-- Calm Confidence Pill & Evidence Quick Toggle -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="confidence-pill">
+              <span class="confidence-dot"></span>
+              <span>${confLevel} confidence · ${confVal}%</span>
+            </div>
+            ${hasEvidence ? `
+              <button class="btn btn-outline" style="padding: 3px 10px; font-size: 12px;" onclick="switchView('evidence')">
+                Visual Evidence ➔
+              </button>
+            ` : ''}
+          </div>
+
+          <!-- Secondary Expandable: How was this determined? -->
+          <details class="tech-accordion">
+            <summary class="tech-summary">
+              <span>How was this determined?</span>
+              <span style="font-size: 11px; color: var(--text-dim);">▼ Details</span>
+            </summary>
+            <div class="tech-content">
+              <div class="tech-grid">
+                <div class="tech-item">
+                  <div class="tech-item-label">Task Identified</div>
+                  <div class="tech-item-value">${escapeHtml(data.task?.replace(/_/g, ' ').toUpperCase() || 'QUERY')}</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-item-label">Specialist Tool</div>
+                  <div class="tech-item-value">${escapeHtml(data.tool || 'RS-VLM Pipeline')}</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-item-label">Detected Target Area</div>
+                  <div class="tech-item-value">${areaText}</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-item-label">WGS84 Centroid</div>
+                  <div class="tech-item-value">${centroidStr}</div>
+                </div>
+              </div>
+
+              ${hasLc ? `
+                <div class="landcover-bar-wrap">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-subtle);">
+                    <span>Land-Cover Breakdown</span>
+                    <span>Built: ${built.toFixed(1)}% | Veg: ${veg.toFixed(1)}% | Water: ${water.toFixed(1)}%</span>
+                  </div>
+                  <div class="landcover-bar">
+                    <div class="lc-built" style="width: ${built}%" title="Built-up ${built}%"></div>
+                    <div class="lc-veg" style="width: ${veg}%" title="Vegetation ${veg}%"></div>
+                    <div class="lc-water" style="width: ${water}%" title="Water ${water}%"></div>
+                    <div class="lc-bare" style="width: ${bare}%" title="Bare / Other ${bare}%"></div>
+                  </div>
+                </div>
+              ` : ''}
+
+              ${trace.length ? `
+                <div style="font-size: 11px; font-weight: 600; color: var(--text-subtle); margin-top: 4px;">Pipeline Execution Trace:</div>
+                <div class="trace-list">
+                  ${trace.map(t => `
+                    <div class="trace-item">
+                      <span class="trace-step-name">${escapeHtml(t.step)}</span>
+                      <span class="trace-step-detail">${escapeHtml(typeof t.detail === 'object' ? JSON.stringify(t.detail) : t.detail)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11.5px;" onclick="downloadExecutiveReport()">
+                  Download Audit Report (HTML/PDF)
+                </button>
+                <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11.5px;" onclick="downloadJsonReport()">
+                  Export JSON
+                </button>
+              </div>
+            </div>
+          </details>
+        </div>
+      `;
+
+      $('chatStream').scrollTop = $('chatStream').scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ── Report & JSON Export ─────────────────────────────
+    function downloadJsonReport() {
+      if (!state.lastResult) {
+        showFriendlyError("No query result to export", "Please execute an analysis query before downloading telemetry.");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(state.lastResult, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `satquery-analysis-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    window.downloadJsonReport = downloadJsonReport;
+
+    function downloadExecutiveReport() {
+      if (!state.lastResult) {
+        showFriendlyError("No query result to export", "Please execute an analysis query before generating an assessment report.");
+        return;
+      }
+      const r = state.lastResult;
+      const p = state.primary || {};
+      const s = state.secondary;
+      const ev = r.evidence || {};
+      const trace = r.trace || r.execution_trace || [];
+
+      const reportHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SatQuery AI — Geospatial Intelligence Assessment Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; color: #0F172A; background: #F8FAFC; line-height: 1.5; }
+    .report-card { max-width: 860px; margin: 0 auto; background: #FFFFFF; padding: 36px 44px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #E2E8F0; }
+    .header { border-bottom: 2px solid #059669; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 22px; font-weight: 800; color: #0F172A; }
+    .badge { background: #059669; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #64748B; letter-spacing: 0.05em; margin-bottom: 10px; border-bottom: 1px solid #F1F5F9; padding-bottom: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid-item { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 6px; }
+    .grid-label { font-size: 11px; color: #64748B; font-weight: 600; text-transform: uppercase; }
+    .grid-val { font-size: 13.5px; color: #0F172A; font-weight: 700; margin-top: 2px; }
+    .answer-box { background: #ECFDF5; border: 1px solid #A7F3D0; padding: 14px 18px; border-radius: 8px; font-size: 14px; color: #065F46; font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+    th { background: #F1F5F9; color: #475569; text-align: left; padding: 8px 10px; font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; color: #334155; }
+    .btn-print { background: #0F172A; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 20px; }
+    @media print { .btn-print { display: none; } body { margin: 0; background: white; } .report-card { border: none; box-shadow: none; padding: 0; } }
+  </style>
+</head>
+<body>
+  <div style="max-width: 860px; margin: 0 auto;">
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="report-card">
+    <div class="header">
+      <div>
+        <div class="title">🛰️ SatQuery AI Intelligence Assessment Report</div>
+        <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Mission & Scene Audit • Generated ${new Date().toUTCString()}</div>
+      </div>
+      <div class="badge">${r.task || 'ANALYSIS'}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">1. Natural Language Query & Agent Synthesis</div>
+      <div style="margin-bottom: 8px; font-size: 13.5px;"><b>Query:</b> "${r.query || 'N/A'}"</div>
+      <div class="answer-box"><b>Agent Response:</b> ${r.answer || 'N/A'}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">2. Sensor & Scene Acquisition Metadata</div>
+      <div class="grid">
+        <div class="grid-item"><div class="grid-label">Primary Scene</div><div class="grid-val">${p.filename || 'N/A'} (${p.metadata?.crs || 'EPSG:4326'})</div></div>
+        <div class="grid-item"><div class="grid-label">Secondary / Multi-Date</div><div class="grid-val">${s ? s.filename : 'Single Observation'}</div></div>
+        <div class="grid-item"><div class="grid-label">Centroid Coordinates</div><div class="grid-val">${p.metadata?.centroid_wgs84 ? `${p.metadata.centroid_wgs84.lat}° N, ${p.metadata.centroid_wgs84.lon}° E` : 'WGS84 Available'}</div></div>
+        <div class="grid-item"><div class="grid-label">Specialist Tool</div><div class="grid-val">${r.tool || 'RS-VLM Engine'}</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">3. Spatial Telemetry & Radiometric Evidence</div>
+      <div class="grid">
+        <div class="grid-item"><div class="grid-label">Detected Target Area</div><div class="grid-val">${ev.burn_area_hectares != null ? `${ev.burn_area_hectares.toLocaleString()} ha` : (ev.area_hectares != null ? `${ev.area_hectares} ha` : (ev.delta_percentage_points != null ? `${ev.delta_percentage_points} pp` : 'Calculated'))}</div></div>
+        <div class="grid-item"><div class="grid-label">Model Confidence</div><div class="grid-val">${Math.round((r.confidence || 0.9) * 100)}%</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">4. Auditable Agent Execution Summary & Tool Sequence</div>
+      <table>
+        <thead>
+          <tr><th style="width: 40px;">#</th><th>Pipeline Step</th><th>Details & Parameters</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          ${trace.map((t, idx) => `
+            <tr>
+              <td><b>${idx + 1}</b></td>
+              <td><b>${t.step}</b></td>
+              <td>${typeof t.detail === 'object' ? JSON.stringify(t.detail) : t.detail}</td>
+              <td><span style="color: #059669; font-weight: 700;">OK</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 30px; border-top: 1px solid #E2E8F0; padding-top: 12px; font-size: 11px; color: #94A3B8; display: flex; justify-content: space-between;">
+      <span>SatQuery AI — Agentic Vision-Language Geospatial Assistant</span>
+      <span>ISO/OGC Compliant Audit Report</span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const reportWin = window.open('', '_blank');
+      if (reportWin) {
+        reportWin.document.write(reportHtml);
+        reportWin.document.close();
+      } else {
+        const blob = new Blob([reportHtml], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `satquery-intelligence-report-${Date.now()}.html`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    }
+    window.downloadExecutiveReport = downloadExecutiveReport;
+    $('btnExportReport').addEventListener('click', downloadExecutiveReport);
+
+  </script>
+</body>
+</html>

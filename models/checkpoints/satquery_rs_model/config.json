@@ -1,0 +1,21 @@
+{
+  "base_model": "GeoRSCLIP-ViT-B-32",
+  "base_model_loader": "open_clip",
+  "adapter": "RSVQAAdapter",
+  "image_embedding_dim": 512,
+  "text_embedding_dim": 512,
+  "input_dim": 1024,
+  "hidden_dim": 512,
+  "num_classes": 50,
+  "dataset": "BigEarthNet.txt (arXiv:2603.29630) + RSVQA (Scene-Disjoint Train Split)",
+  "adaptation_train_samples": 113,
+  "best_internal_validation_accuracy": 0.5625,
+  "training_epochs": 10,
+  "final_training_loss": 1.1945,
+  "batch_size": 8,
+  "gradient_accumulation_steps": 2,
+  "citation": "BigEarthNet.txt: A Large-Scale Multi-Sensor Image-Text Dataset (arXiv:2603.29630)",
+  "adaptation_val_samples": 32,
+  "final_training_accuracy": 0.5575,
+  "final_validation_loss": 2.1107
+}

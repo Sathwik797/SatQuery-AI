@@ -1,0 +1,622 @@
+[
+  {
+    "id": 138,
+    "img_id": 138,
+    "image_name": "rsvqa_lr_0138.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0138.png",
+    "question": "What is the number of grass areas?",
+    "answer": "171",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 139,
+    "img_id": 139,
+    "image_name": "rsvqa_lr_0139.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0139.png",
+    "question": "What is the amount of water areas?",
+    "answer": "20",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 140,
+    "img_id": 140,
+    "image_name": "rsvqa_lr_0140.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0140.png",
+    "question": "Are there less water areas than forests?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 141,
+    "img_id": 141,
+    "image_name": "rsvqa_lr_0141.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0141.png",
+    "question": "Is a square residential building present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 142,
+    "img_id": 142,
+    "image_name": "rsvqa_lr_0142.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0142.png",
+    "question": "How many medium commercial buildings are there?",
+    "answer": "0",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 143,
+    "img_id": 143,
+    "image_name": "rsvqa_lr_0143.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0143.png",
+    "question": "Are there less commercial buildings than grass areas?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 144,
+    "img_id": 144,
+    "image_name": "rsvqa_lr_0144.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0144.png",
+    "question": "What is the amount of square heaths?",
+    "answer": "0",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 145,
+    "img_id": 145,
+    "image_name": "rsvqa_lr_0145.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0145.png",
+    "question": "Is there a rectangular residential building?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 146,
+    "img_id": 146,
+    "image_name": "rsvqa_lr_0146.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0146.png",
+    "question": "Is a circular water area present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 147,
+    "img_id": 147,
+    "image_name": "rsvqa_lr_0147.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0147.png",
+    "question": "Is there a small road?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 148,
+    "img_id": 148,
+    "image_name": "rsvqa_lr_0148.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0148.png",
+    "question": "Are there less heaths than buildings?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 149,
+    "img_id": 149,
+    "image_name": "rsvqa_lr_0149.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0149.png",
+    "question": "Are there more commercial buildings than water areas?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 150,
+    "img_id": 150,
+    "image_name": "rsvqa_lr_0150.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0150.png",
+    "question": "Is the number of grass areas equal to the number of medium residential buildings?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 151,
+    "img_id": 151,
+    "image_name": "rsvqa_lr_0151.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0151.png",
+    "question": "Is the number of water areas equal to the number of commercial buildings?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 152,
+    "img_id": 152,
+    "image_name": "rsvqa_lr_0152.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0152.png",
+    "question": "What is the amount of heaths in the image?",
+    "answer": "12",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 153,
+    "img_id": 153,
+    "image_name": "rsvqa_lr_0153.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0153.png",
+    "question": "How many circular residential buildings are there?",
+    "answer": "2",
+    "category": "presence",
+    "scene_hash": "211e3d8f3e09"
+  },
+  {
+    "id": 154,
+    "img_id": 154,
+    "image_name": "rsvqa_lr_0154.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0154.png",
+    "question": "Is there a farmland?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 155,
+    "img_id": 155,
+    "image_name": "rsvqa_lr_0155.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0155.png",
+    "question": "Are there more buildings than forests?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 156,
+    "img_id": 156,
+    "image_name": "rsvqa_lr_0156.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0156.png",
+    "question": "Is a square water area present in the image?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 157,
+    "img_id": 157,
+    "image_name": "rsvqa_lr_0157.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0157.png",
+    "question": "What is the number of large residential buildings?",
+    "answer": "0",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 158,
+    "img_id": 158,
+    "image_name": "rsvqa_lr_0158.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0158.png",
+    "question": "Is the number of residential buildings equal to the number of forests in the image?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 159,
+    "img_id": 159,
+    "image_name": "rsvqa_lr_0159.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0159.png",
+    "question": "What is the amount of small commercial buildings?",
+    "answer": "60",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 160,
+    "img_id": 160,
+    "image_name": "rsvqa_lr_0160.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0160.png",
+    "question": "Is the number of water areas equal to the number of medium grass areas?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 161,
+    "img_id": 161,
+    "image_name": "rsvqa_lr_0161.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0161.png",
+    "question": "What is the number of farmlands?",
+    "answer": "18",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 162,
+    "img_id": 162,
+    "image_name": "rsvqa_lr_0162.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0162.png",
+    "question": "What is the number of small roads?",
+    "answer": "626",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 163,
+    "img_id": 163,
+    "image_name": "rsvqa_lr_0163.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0163.png",
+    "question": "Are there less commercial buildings than roads in the image?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 164,
+    "img_id": 164,
+    "image_name": "rsvqa_lr_0164.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0164.png",
+    "question": "How many commercial buildings on the left of a  road are there?",
+    "answer": "68",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 165,
+    "img_id": 165,
+    "image_name": "rsvqa_lr_0165.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0165.png",
+    "question": "Are there more residential buildings than small grass areas?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 166,
+    "img_id": 166,
+    "image_name": "rsvqa_lr_0166.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0166.png",
+    "question": "Are there more roads than residential buildings?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 167,
+    "img_id": 167,
+    "image_name": "rsvqa_lr_0167.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0167.png",
+    "question": "Are there less circular residential buildings than roads?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 168,
+    "img_id": 168,
+    "image_name": "rsvqa_lr_0168.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0168.png",
+    "question": "Is a large building present?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "a8044b099d79"
+  },
+  {
+    "id": 169,
+    "img_id": 169,
+    "image_name": "rsvqa_lr_0169.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0169.png",
+    "question": "How many commercial buildings are there?",
+    "answer": "538",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 170,
+    "img_id": 170,
+    "image_name": "rsvqa_lr_0170.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0170.png",
+    "question": "How many circular commercial buildings are there?",
+    "answer": "0",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 171,
+    "img_id": 171,
+    "image_name": "rsvqa_lr_0171.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0171.png",
+    "question": "Are there less residential buildings than small roads?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 172,
+    "img_id": 172,
+    "image_name": "rsvqa_lr_0172.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0172.png",
+    "question": "What is the amount of rectangular forests?",
+    "answer": "9",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 173,
+    "img_id": 173,
+    "image_name": "rsvqa_lr_0173.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0173.png",
+    "question": "Is a water area present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 174,
+    "img_id": 174,
+    "image_name": "rsvqa_lr_0174.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0174.png",
+    "question": "How many residential buildings are there?",
+    "answer": "15266",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 175,
+    "img_id": 175,
+    "image_name": "rsvqa_lr_0175.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0175.png",
+    "question": "What is the amount of parks?",
+    "answer": "5",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 176,
+    "img_id": 176,
+    "image_name": "rsvqa_lr_0176.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0176.png",
+    "question": "Is there a small water area in the image?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 177,
+    "img_id": 177,
+    "image_name": "rsvqa_lr_0177.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0177.png",
+    "question": "How many farmlands are there?",
+    "answer": "3",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 178,
+    "img_id": 178,
+    "image_name": "rsvqa_lr_0178.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0178.png",
+    "question": "What is the number of small water areas?",
+    "answer": "283",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 179,
+    "img_id": 179,
+    "image_name": "rsvqa_lr_0179.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0179.png",
+    "question": "Is there a meadow?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 180,
+    "img_id": 180,
+    "image_name": "rsvqa_lr_0180.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0180.png",
+    "question": "Is there a large commercial building?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 181,
+    "img_id": 181,
+    "image_name": "rsvqa_lr_0181.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0181.png",
+    "question": "How many rectangular residential buildings are there?",
+    "answer": "10837",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 182,
+    "img_id": 182,
+    "image_name": "rsvqa_lr_0182.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0182.png",
+    "question": "How many circular buildings are there?",
+    "answer": "51",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 183,
+    "img_id": 183,
+    "image_name": "rsvqa_lr_0183.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0183.png",
+    "question": "Are there more water areas than large residential buildings?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 184,
+    "img_id": 184,
+    "image_name": "rsvqa_lr_0184.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0184.png",
+    "question": "Is the number of water areas equal to the number of commercial buildings in the image?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 185,
+    "img_id": 185,
+    "image_name": "rsvqa_lr_0185.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0185.png",
+    "question": "What is the number of rectangular buildings in the image?",
+    "answer": "11372",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 186,
+    "img_id": 186,
+    "image_name": "rsvqa_lr_0186.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0186.png",
+    "question": "Is a square commercial building present in the image?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 187,
+    "img_id": 187,
+    "image_name": "rsvqa_lr_0187.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0187.png",
+    "question": "Is there a small building?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 188,
+    "img_id": 188,
+    "image_name": "rsvqa_lr_0188.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0188.png",
+    "question": "Is a square forest present?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 189,
+    "img_id": 189,
+    "image_name": "rsvqa_lr_0189.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0189.png",
+    "question": "Is a rectangular residential building present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 190,
+    "img_id": 190,
+    "image_name": "rsvqa_lr_0190.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0190.png",
+    "question": "Is there a pitch?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 191,
+    "img_id": 191,
+    "image_name": "rsvqa_lr_0191.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0191.png",
+    "question": "Are there more buildings than roads?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 192,
+    "img_id": 192,
+    "image_name": "rsvqa_lr_0192.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0192.png",
+    "question": "Are there less roads than buildings?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 193,
+    "img_id": 193,
+    "image_name": "rsvqa_lr_0193.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0193.png",
+    "question": "Is the number of water areas equal to the number of farmlands?",
+    "answer": "no",
+    "category": "presence",
+    "scene_hash": "fcf9989f67fe"
+  },
+  {
+    "id": 194,
+    "img_id": 194,
+    "image_name": "rsvqa_lr_0194.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0194.png",
+    "question": "Is it a rural or an urban area",
+    "answer": "rural",
+    "category": "rural_urban",
+    "scene_hash": "58bee4c4a6db"
+  },
+  {
+    "id": 195,
+    "img_id": 195,
+    "image_name": "rsvqa_lr_0195.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0195.png",
+    "question": "Are there less circular grass areas than water areas?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "58bee4c4a6db"
+  },
+  {
+    "id": 196,
+    "img_id": 196,
+    "image_name": "rsvqa_lr_0196.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0196.png",
+    "question": "How many farmlands are there?",
+    "answer": "42",
+    "category": "presence",
+    "scene_hash": "58bee4c4a6db"
+  },
+  {
+    "id": 197,
+    "img_id": 197,
+    "image_name": "rsvqa_lr_0197.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0197.png",
+    "question": "Is a forest present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "58bee4c4a6db"
+  },
+  {
+    "id": 198,
+    "img_id": 198,
+    "image_name": "rsvqa_lr_0198.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0198.png",
+    "question": "Is a water area at the top of a  large building present?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "58bee4c4a6db"
+  },
+  {
+    "id": 199,
+    "img_id": 199,
+    "image_name": "rsvqa_lr_0199.png",
+    "image_path": "data/external_datasets/rsvqa/images/rsvqa_lr_0199.png",
+    "question": "Are there more roads than large water areas?",
+    "answer": "yes",
+    "category": "presence",
+    "scene_hash": "58bee4c4a6db"
+  }
+]

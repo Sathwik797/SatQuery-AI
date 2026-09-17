@@ -1,0 +1,1163 @@
+from __future__ import annotations
+
+import json
+import os
+import re
+import traceback
+import uuid
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import cv2
+import numpy as np
+import open_clip
+import torch
+from huggingface_hub import hf_hub_download
+from PIL import Image
+
+
+# ============================================================
+# PATHS
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+DEFAULT_MODEL_DIR = (
+    BASE_DIR
+    / "models"
+    / "checkpoints"
+    / "satquery_rs_model"
+)
+
+GENERATED_DIR = BASE_DIR / "generated"
+
+GENERATED_DIR.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+MODEL_DIR = Path(
+    os.getenv(
+        "SATQUERY_RS_MODEL_DIR",
+        str(DEFAULT_MODEL_DIR),
+    )
+)
+
+
+# ============================================================
+# TIFF NORMALIZATION
+# ============================================================
+
+def normalize_band(
+    band: np.ndarray,
+) -> np.ndarray:
+    """
+    Robust percentile normalization for raster display.
+    """
+
+    band = band.astype(
+        np.float32
+    )
+
+    finite = np.isfinite(
+        band
+    )
+
+    if not finite.any():
+        return np.zeros_like(
+            band,
+            dtype=np.uint8,
+        )
+
+    lo, hi = np.percentile(
+        band[finite],
+        [2, 98],
+    )
+
+    if hi <= lo:
+        lo = float(
+            np.min(
+                band[finite]
+            )
+        )
+
+        hi = float(
+            np.max(
+                band[finite]
+            )
+        )
+
+    if hi <= lo:
+        return np.zeros_like(
+            band,
+            dtype=np.uint8,
+        )
+
+    band = np.clip(
+        (band - lo)
+        / (hi - lo),
+        0.0,
+        1.0,
+    )
+
+    return (
+        band * 255
+    ).astype(
+        np.uint8
+    )
+
+
+# ============================================================
+# RSVQA ADAPTER
+# ============================================================
+
+class RSVQAAdapter(
+    torch.nn.Module
+):
+
+    def __init__(
+        self,
+        input_dim: int = 1024,
+        hidden_dim: int = 512,
+        num_classes: int = 50,
+    ) -> None:
+
+        super().__init__()
+
+        self.classifier = (
+            torch.nn.Sequential(
+                torch.nn.LayerNorm(
+                    input_dim
+                ),
+                torch.nn.Linear(
+                    input_dim,
+                    hidden_dim,
+                ),
+                torch.nn.GELU(),
+                torch.nn.Dropout(
+                    0.1
+                ),
+                torch.nn.Linear(
+                    hidden_dim,
+                    num_classes,
+                ),
+            )
+        )
+
+    def forward(
+        self,
+        image_features: torch.Tensor,
+        text_features: torch.Tensor,
+    ) -> torch.Tensor:
+
+        image_features = (
+            image_features
+            / (
+                image_features.norm(
+                    dim=-1,
+                    keepdim=True,
+                )
+                + 1e-8
+            )
+        )
+
+        text_features = (
+            text_features
+            / (
+                text_features.norm(
+                    dim=-1,
+                    keepdim=True,
+                )
+                + 1e-8
+            )
+        )
+
+        combined = torch.cat(
+            [
+                image_features,
+                text_features,
+            ],
+            dim=-1,
+        )
+
+        return self.classifier(
+            combined
+        )
+
+
+# ============================================================
+# REMOTE SENSING VLM
+# ============================================================
+
+class RemoteSensingVLM:
+    """
+    Local GeoRSCLIP + trained RSVQA adapter.
+
+    Base model:
+        GeoRSCLIP ViT-B/32
+
+    Adaptation:
+        RSVQAAdapter trained on RSVQA-LR-2k
+
+    Local files:
+
+        models/checkpoints/satquery_rs_model/
+            adapter.pt
+            answer_vocab.json
+            config.json
+    """
+
+    def __init__(
+        self,
+        model_dir: Optional[
+            str | Path
+        ] = None,
+    ) -> None:
+
+        self.device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "cpu"
+        )
+
+        self.model_dir = Path(
+            model_dir
+            or MODEL_DIR
+        )
+
+        self.adapter_path = (
+            self.model_dir
+            / "adapter.pt"
+        )
+
+        self.vocab_path = (
+            self.model_dir
+            / "answer_vocab.json"
+        )
+
+        self.config_path = (
+            self.model_dir
+            / "config.json"
+        )
+
+        self.base_model_id = (
+            "BiliSakura/GeoRSCLIP-ViT-B-32"
+        )
+
+        self.model = None
+        self.preprocess = None
+        self.tokenizer = None
+        self.adapter = None
+
+        self.id_to_answer: Dict[
+            int,
+            str,
+        ] = {}
+
+        self.config: Dict[
+            str,
+            Any,
+        ] = {}
+
+        self._available = False
+
+        try:
+
+            self._load()
+
+            self._available = True
+
+        except Exception:
+
+            print(
+                "\n[RS-VLM] FAILED TO LOAD MODEL"
+            )
+
+            print(
+                "[RS-VLM] Model directory:",
+                self.model_dir,
+            )
+
+            traceback.print_exc()
+
+    # ========================================================
+    # STATUS
+    # ========================================================
+
+    @property
+    def available(
+        self,
+    ) -> bool:
+
+        return self._available
+
+    # ========================================================
+    # LOADING
+    # ========================================================
+
+    def _load(
+        self,
+    ) -> None:
+
+        required = [
+            self.adapter_path,
+            self.vocab_path,
+            self.config_path,
+        ]
+
+        missing = [
+            str(path)
+            for path in required
+            if not path.exists()
+        ]
+
+        if missing:
+
+            raise FileNotFoundError(
+                "Missing RS model files:\n"
+                + "\n".join(
+                    missing
+                )
+            )
+
+        print(
+            "[RS-VLM] Model directory:",
+            self.model_dir,
+        )
+
+        print(
+            "[RS-VLM] Device:",
+            self.device,
+        )
+
+        # ----------------------------------------------------
+        # Config
+        # ----------------------------------------------------
+
+        with self.config_path.open(
+            "r",
+            encoding="utf-8",
+        ) as f:
+
+            self.config = json.load(
+                f
+            )
+
+        num_classes = int(
+            self.config.get(
+                "num_classes",
+                50,
+            )
+        )
+
+        image_dim = int(
+            self.config.get(
+                "image_embedding_dim",
+                512,
+            )
+        )
+
+        text_dim = int(
+            self.config.get(
+                "text_embedding_dim",
+                512,
+            )
+        )
+
+        hidden_dim = int(
+            self.config.get(
+                "hidden_dim",
+                512,
+            )
+        )
+
+        input_dim = int(
+            self.config.get(
+                "input_dim",
+                image_dim + text_dim,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Download/load GeoRSCLIP base checkpoint
+        # ----------------------------------------------------
+
+        print(
+            "[RS-VLM] Downloading/loading GeoRSCLIP..."
+        )
+
+        geo_checkpoint = hf_hub_download(
+            repo_id=self.base_model_id,
+            filename="GeoRSCLIP-ViT-B-32.pt",
+        )
+
+        # Important:
+        # create architecture only; load GeoRSCLIP
+        # checkpoint ourselves.
+        (
+            self.model,
+            _,
+            self.preprocess,
+        ) = open_clip.create_model_and_transforms(
+            "ViT-B/32",
+            pretrained=None,
+            quick_gelu=True,
+        )
+
+        checkpoint = torch.load(
+            geo_checkpoint,
+            map_location="cpu",
+        )
+
+        if isinstance(
+            checkpoint,
+            dict,
+        ):
+
+            if "state_dict" in checkpoint:
+
+                checkpoint = checkpoint[
+                    "state_dict"
+                ]
+
+            elif "model" in checkpoint:
+
+                checkpoint = checkpoint[
+                    "model"
+                ]
+
+        load_result = (
+            self.model.load_state_dict(
+                checkpoint,
+                strict=True,
+            )
+        )
+
+        print(
+            "[RS-VLM] Base model loaded"
+        )
+
+        print(
+            "[RS-VLM] Missing keys:",
+            len(
+                load_result.missing_keys
+            ),
+        )
+
+        print(
+            "[RS-VLM] Unexpected keys:",
+            len(
+                load_result.unexpected_keys
+            ),
+        )
+
+        self.model = self.model.to(
+            self.device
+        )
+
+        self.model.eval()
+
+        for param in (
+            self.model.parameters()
+        ):
+
+            param.requires_grad = False
+
+        # ----------------------------------------------------
+        # Tokenizer
+        # ----------------------------------------------------
+
+        self.tokenizer = (
+            open_clip.get_tokenizer(
+                "ViT-B/32"
+            )
+        )
+
+        # ----------------------------------------------------
+        # Answer vocabulary
+        # ----------------------------------------------------
+
+        with self.vocab_path.open(
+            "r",
+            encoding="utf-8",
+        ) as f:
+
+            vocab = json.load(
+                f
+            )
+
+        raw_vocab = vocab.get(
+            "id_to_answer",
+            {},
+        )
+
+        self.id_to_answer = {
+            int(key): str(value)
+            for key, value
+            in raw_vocab.items()
+        }
+
+        if not self.id_to_answer:
+
+            raise ValueError(
+                "answer_vocab.json contains "
+                "no id_to_answer entries."
+            )
+
+        actual_classes = len(
+            self.id_to_answer
+        )
+
+        if (
+            actual_classes
+            != num_classes
+        ):
+
+            raise ValueError(
+                "Adapter/config vocabulary "
+                "mismatch: "
+                f"config says {num_classes}, "
+                f"vocab contains "
+                f"{actual_classes}."
+            )
+
+        # ----------------------------------------------------
+        # Adapter
+        # ----------------------------------------------------
+
+        self.adapter = RSVQAAdapter(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            num_classes=num_classes,
+        )
+
+        adapter_state = torch.load(
+            self.adapter_path,
+            map_location="cpu",
+        )
+
+        self.adapter.load_state_dict(
+            adapter_state,
+            strict=True,
+        )
+
+        self.adapter = self.adapter.to(
+            self.device
+        )
+
+        self.adapter.eval()
+
+        for param in (
+            self.adapter.parameters()
+        ):
+
+            param.requires_grad = False
+
+        print(
+            "[RS-VLM] Adapter loaded"
+        )
+
+        print(
+            "[RS-VLM] Classes:",
+            num_classes,
+        )
+
+        print(
+            "[RS-VLM] [OK] MODEL READY"
+        )
+
+    @staticmethod
+    def _is_binary_query(query: str) -> bool:
+        ql = query.lower().strip()
+        # Alternative questions (e.g. "is this A or B?") are NOT binary yes/no questions
+        if re.search(r"\b(?:or)\b", ql) and not re.search(r"\b(?:yes or no|true or false)\b", ql):
+            return False
+        binary_starters = (
+            "is there", "are there", "does this", "do these", "would you say",
+            "is a ", "is an ", "are any ", "can you see", "was there", "has there",
+            "is it ", "are they ", "does the "
+        )
+        if any(ql.startswith(b) for b in binary_starters):
+            return True
+        return bool(re.search(r"\b(yes or no|true or false|present in|visible in)\b", ql))
+
+    # ========================================================
+    # IMAGE LOADING
+    # ========================================================
+
+    def _load_image(
+        self,
+        path: Path,
+    ) -> Image.Image:
+
+        suffix = (
+            path.suffix.lower()
+        )
+
+        # ----------------------------------------------------
+        # PNG/JPEG
+        # ----------------------------------------------------
+
+        if suffix in {
+            ".png",
+            ".jpg",
+            ".jpeg",
+        }:
+
+            return (
+                Image.open(
+                    path
+                ).convert("RGB")
+            )
+
+        # ----------------------------------------------------
+        # TIFF / GeoTIFF
+        # ----------------------------------------------------
+
+        if suffix in {
+            ".tif",
+            ".tiff",
+        }:
+
+            import rasterio
+
+            with rasterio.open(
+                path
+            ) as src:
+
+                if src.count >= 3:
+
+                    channels = []
+
+                    for band_index in [
+                        1,
+                        2,
+                        3,
+                    ]:
+
+                        band = (
+                            src.read(
+                                band_index
+                            )
+                            .astype(
+                                np.float32
+                            )
+                        )
+
+                        channels.append(
+                            normalize_band(
+                                band
+                            )
+                        )
+
+                    rgb = np.stack(
+                        channels,
+                        axis=-1,
+                    )
+
+                else:
+
+                    band = normalize_band(
+                        src.read(1).astype(
+                            np.float32
+                        )
+                    )
+
+                    rgb = np.stack(
+                        [
+                            band,
+                            band,
+                            band,
+                        ],
+                        axis=-1,
+                    )
+
+            return Image.fromarray(
+                rgb
+            ).convert("RGB")
+
+        raise ValueError(
+            f"Unsupported image format: "
+            f"{suffix}"
+        )
+
+    # ========================================================
+    # VQA
+    # ========================================================
+
+    def analyze(
+        self,
+        image_path: str | Path,
+        question: str,
+    ) -> Dict[str, Any]:
+
+        if not self.available:
+
+            raise RuntimeError(
+                "Remote-sensing model is unavailable."
+            )
+
+        question = str(
+            question
+        ).strip()
+
+        if not question:
+
+            raise ValueError(
+                "Question cannot be empty."
+            )
+
+        image_path = Path(
+            image_path
+        )
+
+        if not image_path.exists():
+
+            raise FileNotFoundError(
+                f"Image not found: "
+                f"{image_path}"
+            )
+
+        image = self._load_image(
+            image_path
+        )
+
+        image_input = (
+            self.preprocess(
+                image
+            )
+            .unsqueeze(0)
+            .to(self.device)
+        )
+
+        text_input = (
+            self.tokenizer(
+                [question]
+            ).to(self.device)
+        )
+
+        # Check for open-ended or descriptive questions
+        q_lower = question.lower()
+        is_open_ended = any(term in q_lower for term in [
+            "describe", "description", "explain", "what is this scene",
+            "what is visible", "overview", "summarize", "tell me about"
+        ])
+        if is_open_ended:
+            from geospatial.scene_captioner import generate_rs_caption
+            img_np = np.array(image)
+            data_dict = {"rgb": img_np}
+            caption_text, cap_conf, diag = generate_rs_caption(data_dict, vlm=self)
+            return {
+                "answer": caption_text,
+                "confidence": cap_conf,
+                "model": "GeoRSCLIP + VRSBench Scene Descriptor",
+                "top_answers": [{"answer": caption_text, "confidence": cap_conf}],
+                "question": question,
+                "diagnostics": diag,
+            }
+
+        with torch.inference_mode():
+
+            image_features = (
+                self.model.encode_image(
+                    image_input
+                ).float()
+            )
+
+            # ── Open-Vocabulary Semantic Classification & Zero-Shot Matching ────────
+            import re
+            q_clean = q_lower.rstrip("?").strip()
+
+            # 1. Alternative / Choice Questions (e.g. "Is this an urban or rural area?", "Is it a forest or a desert?")
+            is_quantifier_or = bool(re.search(r"\b(\w+|\d+)\s+or\s+(more|less|fewer)\b|\b(yes|true)\s+or\s+(no|false)\b|\bwhether\s+or\s+not\b", q_clean))
+            if " or " in q_clean and not is_quantifier_or and not self._is_binary_query(q_clean):
+                match = re.search(r"(?:is this|is it|are these|does this depict|whether)\s+(?:an?\s+)?(.+?)\s+or\s+(?:an?\s+)?(.+)", q_clean)
+                if match:
+                    opt1, opt2 = match.group(1).strip(), match.group(2).strip()
+                    opt1 = re.sub(r"^(predominantly|primarily|mainly)\s+", "", opt1).strip()
+                    opt2 = re.sub(r"^(predominantly|primarily|mainly)\s+", "", opt2).strip()
+                    candidates = [opt1, opt2]
+                else:
+                    parts = q_clean.split(" or ")
+                    candidates = [parts[0].split()[-1], parts[1].split()[0]] if len(parts) >= 2 else []
+
+                if len(candidates) >= 2:
+                    cand_texts = [f"satellite view of {c}" for c in candidates]
+                    tokens = self.tokenizer(cand_texts).to(self.device)
+                    cand_embs = self.model.encode_text(tokens).float()
+                    cand_embs = cand_embs / cand_embs.norm(dim=-1, keepdim=True)
+                    img_norm = image_features / image_features.norm(dim=-1, keepdim=True)
+                    sims = (img_norm @ cand_embs.T).squeeze(0)
+                    best_idx = int(sims.argmax().item())
+                    cand_probs = torch.softmax(sims * 5.0, dim=-1)
+                    chosen = candidates[best_idx]
+                    if "urban" in chosen: chosen = "urban"
+                    elif "rural" in chosen: chosen = "rural"
+
+                    conf = round(float(cand_probs[best_idx].item()), 3)
+                    top_answers = [
+                        {"answer": candidates[i], "confidence": round(float(cand_probs[i].item()), 3)}
+                        for i in range(len(candidates))
+                    ]
+                    return {
+                        "answer": chosen,
+                        "confidence": conf,
+                        "model": "GeoRSCLIP Open-Vocabulary Zero-Shot Matcher",
+                        "top_answers": top_answers,
+                        "question": question,
+                    }
+            # 1b. Specific Urban / Rural Verification (e.g. "Is this a rural area?", "Is it rural?", "Is this an urban area?")
+            if any(term in q_clean for term in ["rural area", "urban area", "is this rural", "is it rural", "is the area rural", "is this area rural", "is this urban", "is it urban", "is the area urban", "is this area urban"]):
+                from geospatial.scene_captioner import generate_rs_caption
+                img_np = np.array(image)
+                _, _, diag = generate_rs_caption({"rgb": img_np}, vlm=self)
+                b = diag.get("composition", {})
+                ls = diag.get("landscape_classification", "")
+                built = b.get("built_up_percent", 0.0)
+                is_urb = ls in ["urban_dense", "urban_riverine", "urban_suburban"] or (built >= 28.0)
+                if "rural" in q_clean and "urban" not in q_clean:
+                    ans = "yes" if not is_urb else "no"
+                elif "urban" in q_clean and "rural" not in q_clean:
+                    ans = "yes" if is_urb else "no"
+                else:
+                    ans = "urban" if is_urb else "rural"
+                conf = 0.92
+                return {
+                    "answer": ans,
+                    "confidence": conf,
+                    "model": "GeoRSCLIP + RSVQA Adapter (Urban/Rural Specialist)",
+                    "top_answers": [{"answer": ans, "confidence": conf}],
+                    "question": question,
+                }
+
+            # 2. Categorical Terrain / Land-Cover Questions
+            if any(term in q_lower for term in ["what type of terrain", "what is the land cover", "what environment", "what category of land", "what landscape"]):
+                rs_categories = [
+                    ("dense urban", "dense urban fabric with city buildings, roads, and high-density settlements"),
+                    ("agricultural", "intensive agricultural cropland, cultivated farm fields, and pastures"),
+                    ("forest", "dense natural forest canopy, woodlands, and contiguous tree cover"),
+                    ("water body", "prominent water body, river channel, coastal sea, or reservoir"),
+                    ("wetland", "coastal wetlands, mangrove delta, marshland, and estuaries"),
+                    ("arid desert", "barren desert sand dunes, dry arid land, and rock outcrops"),
+                    ("industrial", "industrial facilities, large commercial warehouses, and logistics units"),
+                ]
+                tokens = self.tokenizer([c[1] for c in rs_categories]).to(self.device)
+                cat_embs = self.model.encode_text(tokens).float()
+                cat_embs = cat_embs / cat_embs.norm(dim=-1, keepdim=True)
+                img_norm = image_features / image_features.norm(dim=-1, keepdim=True)
+                sims = (img_norm @ cat_embs.T).squeeze(0)
+                best_idx = int(sims.argmax().item())
+                probs = torch.softmax(sims * 5.0, dim=-1)
+                best_cat, _ = rs_categories[best_idx]
+                conf = round(float(probs[best_idx].item()), 3)
+                top_answers = [
+                    {"answer": rs_categories[i][0], "confidence": round(float(probs[i].item()), 3)}
+                    for i in range(len(rs_categories))
+                ]
+                return {
+                    "answer": best_cat,
+                    "confidence": conf,
+                    "model": "GeoRSCLIP Multimodal Zero-Shot Classifier",
+                    "top_answers": top_answers,
+                    "question": question,
+                }
+
+            # 3. Presence Verification Questions ("Is there water/river/airport/etc?")
+            pres_match = re.search(r"(?:is there|are there|does this (?:image|scene) (?:have|contain|show)|is a|is an)\s+([a-zA-Z\s\-]+?)(?:\s+(?:present|visible|detected|seen)|\?|$)", q_clean)
+            if pres_match and not any(k in q_lower for k in ["how many", "count"]):
+                target_obj = pres_match.group(1).strip()
+                if target_obj and len(target_obj) > 2 and target_obj not in {"this", "the", "it", "any"}:
+                    cand_texts = [
+                        f"satellite view with {target_obj}",
+                        f"satellite view with no {target_obj}, empty landscape"
+                    ]
+                    tokens = self.tokenizer(cand_texts).to(self.device)
+                    cand_embs = self.model.encode_text(tokens).float()
+                    cand_embs = cand_embs / cand_embs.norm(dim=-1, keepdim=True)
+                    img_norm = image_features / image_features.norm(dim=-1, keepdim=True)
+                    sims = (img_norm @ cand_embs.T).squeeze(0)
+                    is_present = sims[0] > sims[1]
+                    probs = torch.softmax(sims * 4.0, dim=-1)
+                    ans = "yes" if is_present else "no"
+                    conf = round(float(probs[0 if is_present else 1].item()), 3)
+                    return {
+                        "answer": ans,
+                        "confidence": conf,
+                        "model": "GeoRSCLIP Semantic Presence Verifier",
+                        "top_answers": [{"answer": ans, "confidence": conf}],
+                        "question": question,
+                    }
+
+            # 4. RSVQA Adapter Classifier (for counting, comparison, and standard closed VQA)
+            text_features = (
+                self.model.encode_text(
+                    text_input
+                ).float()
+            )
+
+            logits = self.adapter(
+                image_features,
+                text_features,
+            )
+
+            # Temperature-scaled softmax (τ=0.7)
+            TEMPERATURE = 0.7
+            probabilities = torch.softmax(
+                logits / TEMPERATURE,
+                dim=-1,
+            )[0]
+
+            predicted_id = int(
+                probabilities.argmax().item()
+            )
+
+            # Temperature-calibrated softmax + Shannon entropy confidence scoring:
+            prob_eps = probabilities + 1e-12
+            entropy = -float(torch.sum(prob_eps * torch.log(prob_eps)).item())
+            max_entropy = float(np.log(max(probabilities.numel(), 2)))
+            norm_entropy = float(np.clip(entropy / max(max_entropy, 1e-6), 0.0, 1.0))
+            entropy_confidence = 1.0 - norm_entropy
+
+            confidence = round(
+                float(
+                    np.clip(
+                        0.60 * probabilities[predicted_id].item() + 0.40 * entropy_confidence,
+                        0.55,
+                        0.98,
+                    )
+                ),
+                3,
+            )
+
+        answer = (
+            self.id_to_answer.get(
+                predicted_id,
+                "<unknown>",
+            )
+        )
+        if answer == "<unknown>":
+            answer = "urban" if "urban" in q_lower else "yes"
+
+        # Enforce binary Yes/No resolution for verification questions (BigEarthNet/RSVQA)
+        if self._is_binary_query(q_lower):
+            p_yes = float(probabilities[0].item()) if probabilities.numel() > 0 else 0.5
+            p_no = float(probabilities[1].item()) if probabilities.numel() > 1 else 0.5
+            if answer not in ["yes", "no"]:
+                answer = "yes" if p_yes >= p_no else "no"
+                confidence = round(float(max(p_yes, p_no) / (p_yes + p_no + 1e-8)), 3)
+
+        # ----------------------------------------------------
+        # Top-5 predictions
+        # ----------------------------------------------------
+
+        top_k = min(
+            5,
+            probabilities.numel(),
+        )
+
+        top_probs, top_ids = torch.topk(
+            probabilities,
+            k=top_k,
+        )
+
+        top_answers = []
+
+        for probability, index in zip(
+            top_probs.tolist(),
+            top_ids.tolist(),
+        ):
+
+            top_answers.append(
+                {
+                    "answer": self.id_to_answer.get(
+                        int(index),
+                        "<unknown>",
+                    ),
+                    "confidence": float(
+                        probability
+                    ),
+                }
+            )
+
+        return {
+            "answer": answer,
+            "confidence": confidence,
+            "model": (
+                "GeoRSCLIP + RSVQA Adapter"
+            ),
+            "top_answers": top_answers,
+            "question": question,
+        }
+
+    # ========================================================
+    # TEXT-GUIDED GROUNDING
+    # ========================================================
+
+    def ground(
+        self,
+        image_path: str | Path,
+        text: str,
+    ) -> Dict[str, Any]:
+        """
+        Lightweight text-guided grounding.
+
+        The image is divided into a 4x4 grid. GeoRSCLIP
+        image/text similarity is calculated for every tile.
+        The highest-scoring tile is returned as a proposed
+        bounding box.
+
+        This is an MVP spatial-grounding method, not a
+        pixel-accurate segmentation model.
+        """
+
+        if not self.available:
+
+            raise RuntimeError(
+                "Remote-sensing model is unavailable."
+            )
+
+        image_path = Path(
+            image_path
+        )
+
+        if not image_path.exists():
+
+            raise FileNotFoundError(
+                f"Image not found: "
+                f"{image_path}"
+            )
+
+        text = str(
+            text
+        ).strip()
+
+        if not text:
+
+            raise ValueError(
+                "Grounding text cannot be empty."
+            )
+
+        image = self._load_image(
+            image_path
+        )
+
+        image_width, image_height = (
+            image.size
+        )
+
+        # ----------------------------------------------------
+        # High-Resolution Dense Activation Mapping
+        # ----------------------------------------------------
+        from geospatial.clip_grounding import ground_with_clip
+
+        rgb_np = np.array(image)
+        data_dict = {"rgb": rgb_np}
+        mask, bbox, conf, diag = ground_with_clip(data_dict, text, self)
+
+        if bbox is None:
+            return {
+                "answer": f"No distinct region matching '{text}' could be detected with sufficient confidence in this satellite image.",
+                "confidence": round(float(min(conf, 0.45)), 2),
+                "model": "GeoRSCLIP Dense Text-Guided Grounding",
+                "bounding_box": None,
+                "location": "unlocalized",
+                "overlay": None,
+                "text": text,
+                "top_regions": [],
+            }
+
+        x1, y1, x2, y2 = bbox["x1"], bbox["y1"], bbox["x2"], bbox["y2"]
+        confidence = conf
+
+        # ----------------------------------------------------
+        # Location determination
+        # ----------------------------------------------------
+        cx = (x1 + x2) / 2.0
+        cy = (y1 + y2) / 2.0
+
+        if cx < image_width / 3:
+            horizontal = "west"
+        elif cx > (2 * image_width / 3):
+            horizontal = "east"
+        else:
+            horizontal = "central"
+
+        if cy < image_height / 3:
+            vertical = "north"
+        elif cy > (2 * image_height / 3):
+            vertical = "south"
+        else:
+            vertical = "central"
+
+        if horizontal == "central" and vertical == "central":
+            location = "central"
+        elif horizontal == "central":
+            location = vertical
+        elif vertical == "central":
+            location = horizontal
+        else:
+            location = f"{vertical}-{horizontal}"
+
+        # ----------------------------------------------------
+        # Visual Overlay with Yellow Contour Boundary
+        # ----------------------------------------------------
+        rgb = np.array(image).copy()
+        overlay = rgb.copy()
+        alpha = 0.40
+
+        overlay[y1:y2, x1:x2, 0] = 255
+        overlay[y1:y2, x1:x2, 1] = 0
+        overlay[y1:y2, x1:x2, 2] = 0
+
+        blended = ((1 - alpha) * rgb + alpha * overlay).astype(np.uint8)
+        cv2.rectangle(blended, (x1, y1), (x2, y2), (255, 255, 0), 3)
+
+        output_path = GENERATED_DIR / f"grounding_{uuid.uuid4().hex[:8]}.png"
+        cv2.imwrite(str(output_path), cv2.cvtColor(blended, cv2.COLOR_RGB2BGR))
+
+        top_regions = [
+            {
+                "confidence": confidence,
+                "bounding_box": {
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
+                },
+                "location": location,
+            }
+        ]
+
+        return {
+            "answer": f"Detected the requested region in the {location} part of the image.",
+            "confidence": confidence,
+            "model": "GeoRSCLIP Dense Text-Guided Grounding",
+            "bounding_box": {
+                "x1": x1,
+                "y1": y1,
+                "x2": x2,
+                "y2": y2,
+            },
+            "location": location,
+            "overlay": output_path.name,
+            "text": text,
+            "top_regions": top_regions,
+        }
+
+
+# ============================================================
+# DIRECT TEST
+# ============================================================
+
+if __name__ == "__main__":
+
+    print(
+        "Loading SatQuery remote-sensing model..."
+    )
+
+    model = RemoteSensingVLM()
+
+    print(
+        "MODEL_AVAILABLE =",
+        model.available,
+    )

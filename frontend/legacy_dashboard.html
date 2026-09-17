@@ -1,0 +1,1663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SatQuery AI — Remote Sensing Intelligence Studio</title>
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="SatQuery AI — Remote Sensing Intelligence Studio" />
+  <meta name="description" content="Agentic vision-language AI platform for remote sensing and satellite image analysis." />
+  <meta name="theme-color" content="#00D2FF" />
+
+  <!-- Open Graph / Telegram / WhatsApp / LinkedIn -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://satquery.tech/" />
+  <meta property="og:site_name" content="SatQuery AI" />
+  <meta property="og:title" content="SatQuery AI — Remote Sensing Studio" />
+  <meta property="og:description" content="Agentic vision-language AI platform for remote sensing and satellite image analysis." />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:url" content="https://satquery.tech/" />
+  <meta name="twitter:title" content="SatQuery AI — Remote Sensing Studio" />
+  <meta name="twitter:description" content="Agentic vision-language AI platform for remote sensing and satellite image analysis." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet GIS Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Chart.js for Land-Cover Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #070B12;
+      --panel: #0E1524;
+      --panel-elevated: #141E33;
+      --panel-border: #1E2D4A;
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --accent: #00D2FF;
+      --accent-glow: rgba(0, 210, 255, 0.2);
+      --accent-dim: rgba(0, 210, 255, 0.1);
+      --accent-border: rgba(0, 210, 255, 0.35);
+      --emerald: #10B981;
+      --emerald-dim: rgba(16, 185, 129, 0.12);
+      --amber: #F59E0B;
+      --rose: #F43F5E;
+      --indigo: #6366F1;
+      --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(14, 21, 36, 0.9);
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(16px);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00D2FF 0%, #3B82F6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-text h1 span {
+      color: var(--accent);
+    }
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .model-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: var(--emerald-dim);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34D399;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-elevated);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #1E2D4A;
+      border-color: var(--accent-border);
+      color: #FFF;
+    }
+    .btn.primary {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      border-color: #38BDF8;
+      color: #FFF;
+      box-shadow: 0 0 14px rgba(2, 132, 199, 0.3);
+    }
+    .btn.primary:hover {
+      background: linear-gradient(135deg, #0369A1 0%, #075985 100%);
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(380px, 0.95fr);
+      gap: 18px;
+      max-width: 1540px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      box-sizing: border-box;
+    }
+
+    /* Left GIS Map & Canvas Area */
+    .viewport-container {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    /* Presets Toolbar - 2-tier wrapped categorized hub */
+    .toolbar {
+      padding: 10px 14px;
+      background: rgba(14, 21, 36, 0.85);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .toolbar-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      min-width: 80px;
+    }
+
+    .preset-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--panel-elevated);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-pill:hover {
+      background: #1E2D4A;
+      color: #FFF;
+      border-color: var(--accent-border);
+    }
+    .preset-pill.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .preset-pill.emerald {
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .preset-pill.emerald:hover {
+      border-color: var(--emerald);
+      color: #D1FAE5;
+    }
+    .preset-pill.emerald.active {
+      background: var(--emerald-dim);
+      border-color: var(--emerald);
+      color: #34D399;
+    }
+
+    /* Layer Controls & View Switcher */
+    .viewport-nav {
+      padding: 8px 14px;
+      background: #090D16;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .view-mode-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--panel);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--panel-border);
+    }
+    .view-tab {
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .view-tab.active {
+      background: var(--panel-elevated);
+      color: #FFF;
+    }
+    .layer-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .layer-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .layer-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: #FFF;
+    }
+    .opacity-slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    input[type=range] {
+      accent-color: var(--accent);
+      width: 70px;
+      cursor: pointer;
+    }
+
+    /* Main Visualizer Body - 520px GIS View Box */
+    .viewport-canvas {
+      height: 520px;
+      min-height: 520px;
+      max-height: 520px;
+      position: relative;
+      background: #04070D;
+      overflow: hidden;
+    }
+    #gisMap {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .pixel-viewer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #04070D;
+    }
+    .pixel-viewer img {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+      border-radius: 4px;
+      border: 1px solid var(--panel-border);
+    }
+
+    /* HUD Overlay */
+    .hud-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      z-index: 500;
+      background: rgba(14, 21, 36, 0.88);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: flex;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    .hud-item span { color: var(--accent); font-weight: 600; }
+
+    /* Right Sidebar: Intelligence Copilot & Analytics */
+    .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(14, 21, 36, 0.6);
+      flex-shrink: 0;
+    }
+    .sidebar-tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .sidebar-tab-btn.active {
+      color: #FFF;
+      border-bottom-color: var(--accent);
+      background: rgba(0, 210, 255, 0.04);
+    }
+
+    .sidebar-content {
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-pane {
+      display: none;
+      flex-direction: column;
+    }
+    .sidebar-pane.active {
+      display: flex;
+    }
+
+    /* Fixed 650px Chat Box - Longer Conversation View */
+    .chat-stream {
+      height: 650px;
+      min-height: 650px;
+      max-height: 650px;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(6, 10, 18, 0.5);
+    }
+    .chat-stream::-webkit-scrollbar { width: 8px; }
+    .chat-stream::-webkit-scrollbar-track { background: #080D18; }
+    .chat-stream::-webkit-scrollbar-thumb { background: #2B4268; border-radius: 4px; }
+    .chat-stream::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    .chat-msg {
+      max-width: 95%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: #1E3A8A;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #F8FAFC;
+    }
+    .chat-msg.assistant {
+      align-self: flex-start;
+      background: var(--panel-elevated);
+      border: 1px solid var(--panel-border);
+      color: #E2E8F0;
+    }
+    .msg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+    }
+    .msg-tag {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Query Prompt Suggestions */
+    .prompt-library {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(14, 21, 36, 0.4);
+      flex-shrink: 0;
+    }
+    .prompt-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .prompt-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .prompt-btn {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 9px;
+      border-radius: 6px;
+      background: var(--panel-elevated);
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .prompt-btn:hover {
+      background: #1E2D4A;
+      color: #FFF;
+      border-color: var(--accent-border);
+    }
+
+    /* Chat Composer */
+    .composer-box {
+      flex-shrink: 0;
+      padding: 12px 14px;
+      border-top: 1px solid var(--panel-border);
+      background: var(--panel-elevated);
+      display: flex;
+      gap: 8px;
+    }
+    .composer-input {
+      flex: 1;
+      background: #090D16;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #FFF;
+      font-family: var(--font);
+      font-size: 13px;
+      resize: none;
+      height: 44px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .composer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* Analytics Pane */
+    .analytics-pane {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+    .metric-card {
+      background: var(--panel-elevated);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .metric-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .chart-wrap {
+      height: 180px;
+      position: relative;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+    .stat-key { color: var(--text-muted); }
+    .stat-val { font-family: var(--font-mono); font-weight: 600; color: #FFF; }
+
+    /* Trace Pane */
+    .trace-pane {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .trace-step {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+      padding: 8px 10px;
+      background: var(--panel-elevated);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+    }
+    .trace-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .trace-body b { color: #E2E8F0; display: block; }
+    .trace-body span { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+    /* Upload Drawer */
+    .upload-bar {
+      padding: 8px 16px;
+      background: #090D16;
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      gap: 12px;
+      font-size: 11.5px;
+    }
+    .file-chip {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px dashed var(--panel-border);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .file-chip:hover { border-color: var(--accent); }
+    .file-chip input { display: none; }
+    .file-label { font-weight: 600; color: var(--text-muted); }
+    .file-val { font-family: var(--font-mono); font-size: 10.5px; color: var(--accent); }
+
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: 1fr; padding: 12px; }
+      .viewport-canvas { height: 460px; }
+      .sidebar { min-height: 560px; }
+    }
+    @media (max-width: 640px) {
+      .top-controls .model-badge { display: none; }
+      .viewport-canvas { height: 380px; }
+      .upload-bar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 3a14.5 14.5 0 0 0 0 18"/>
+        <path d="M3 12h18"/>
+        <circle cx="18" cy="7" r="2" fill="#FFF"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>SatQuery <span>AI</span></h1>
+      <p>Remote Sensing Intelligence & Geospatial Analytics Studio</p>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <div class="model-badge">
+      <span class="status-dot"></span>
+      GeoRSCLIP ViT-B/32 • RSVQA Adapter Online
+    </div>
+    <button class="btn emerald" onclick="downloadExecutiveReport()" style="background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: var(--emerald);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      📥 Executive Report (PDF/HTML)
+    </button>
+    <button class="btn" onclick="downloadResult()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      📄 Audit JSON
+    </button>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- Left: GIS Map & Pixel Canvas -->
+  <div class="viewport-container">
+    <!-- Categorized Presets Hub -->
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <span class="toolbar-label">🛰️ Benchmarks:</span>
+        <button class="preset-pill active demo-btn" data-key="kolkata" data-q="Describe the land-cover and major objects visible in this image.">🏙️ Kolkata High-Res</button>
+        <button class="preset-pill demo-btn" data-key="sentinel2" data-q="Identify the green fields, buildings, and water in different colours.">🛰️ Sentinel-2 SF Bay (Real 4-Band MSI)</button>
+        <button class="preset-pill demo-btn" data-key="bitemporal" data-q="What changed between these two dates, and where did the change occur?">🔥 California Wildfire T1/T2 (Real Sentinel-2)</button>
+        <button class="preset-pill demo-btn" data-key="real_sf" data-q="Check whether the area is urban or rural.">🌐 San Francisco Bay (COG)</button>
+        <button class="preset-pill demo-btn" data-key="optical_sar" data-q="Use the optical and SAR images together to identify built-up and water-covered regions.">📡 Cartosat + RISAT SAR (ISRO/SAC)</button>
+        <button class="preset-pill demo-btn" data-key="bigearthnet" data-q="Are pastures present in this satellite scene?">🌍 BigEarthNet-MM (Optical + SAR)</button>
+      </div>
+      <div class="toolbar-row">
+        <span class="toolbar-label">🌍 Edge Cases:</span>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_delta" data-q="Describe the land-cover and major objects visible in this image.">🔵 Ganges Delta</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_urban" data-q="Describe the land-cover and major objects visible in this image.">Paris Urban</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_forest" data-q="Describe the land-cover and major objects visible in this image.">Amazon Forest</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_water" data-q="Highlight the water body referred to in the query.">Mediterranean Sea</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_desert" data-q="Describe the land-cover and major objects visible in this image.">Sahara Dunes</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_agri" data-q="Describe the land-cover and major objects visible in this image.">Ukraine Farmland</button>
+        <button class="preset-pill emerald ec-btn" data-ec="ec_suburban" data-q="Describe the land-cover and major objects visible in this image.">London Suburban</button>
+      </div>
+    </div>
+
+    <!-- Viewport Navigation & Layer Tabs -->
+    <div class="viewport-nav">
+      <div class="view-mode-tabs">
+        <button class="view-tab active" id="btnGisMode">🗺️ GIS Map</button>
+        <button class="view-tab" id="btnPixelMode">🔍 Orthomosaic Pixel View</button>
+      </div>
+
+      <div class="layer-selector">
+        <button class="layer-btn" id="showPrimary">Primary (T1)</button>
+        <button class="layer-btn" id="showSecondary">Secondary (T2 / SAR)</button>
+        <button class="layer-btn active" id="showOverlay">✨ Evidence Overlay</button>
+        
+        <div class="opacity-slider-wrap">
+          <span>Opacity</span>
+          <input type="range" id="layerOpacity" min="0" max="100" value="85" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="viewport-canvas">
+      <!-- Floating Mission & Location Telemetry Tag -->
+      <div id="gisMissionBadge" style="position: absolute; top: 12px; left: 12px; z-index: 1000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 8px 14px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); pointer-events: none;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 13px;">📍</span>
+          <span id="gisLocationName" style="font-weight: 700; font-size: 12.5px; color: #F8FAFC;">Kolkata Urban Corridor, India</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 11px; color: #94A3B8; font-family: var(--font-mono);">
+          <span id="gisAcquisitionDate">📅 April 14, 2023</span>
+          <span>•</span>
+          <span id="gisMissionSensor">🛰️ High-Res Optical (0.5m)</span>
+        </div>
+      </div>
+
+      <!-- Interactive GIS Leaflet Map -->
+      <div id="gisMap"></div>
+
+      <!-- Raw Pixel Orthomosaic Viewer (fallback / zoom inspection) -->
+      <div class="pixel-viewer" id="pixelViewer" style="display: none;">
+        <img id="viewerImage" alt="Raster Preview" />
+      </div>
+
+      <!-- HUD Telemetry -->
+      <div class="hud-bar" id="hudBar">
+        <div class="hud-item">CRS: <span id="hudCrs">EPSG:32645</span></div>
+        <div class="hud-item">Raster: <span id="hudDimensions">512×512</span></div>
+        <div class="hud-item">Centroid: <span id="hudCentroid">22.57° N, 88.36° E</span></div>
+        <div class="hud-item">Active: <span id="hudLayer">Evidence Overlay</span></div>
+      </div>
+    </div>
+
+    <!-- Upload Dock -->
+    <div class="upload-bar">
+      <label class="file-chip" for="primaryFile">
+        <span class="file-label">Primary (Optical / T1):</span>
+        <span class="file-val" id="primaryMeta">None (Select Demo or Upload)</span>
+        <input id="primaryFile" type="file" accept=".tif,.tiff,.png,.jpg,.jpeg"/>
+      </label>
+      <label class="file-chip" for="secondaryFile">
+        <span class="file-label">Secondary (SAR / T2):</span>
+        <span class="file-val" id="secondaryMeta">None (Optional)</span>
+        <input id="secondaryFile" type="file" accept=".tif,.tiff,.png,.jpg,.jpeg"/>
+      </label>
+    </div>
+
+    <!-- Live Geospatial Evidence & Land-Cover Breakdown (Utilizing space below upload dock) -->
+    <div style="padding: 14px 16px; background: var(--panel-elevated); border-top: 1px solid var(--panel-border); display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+          Live Spatial Evidence &amp; Radiometric Metrics
+        </span>
+        <span id="evidenceBadge" style="font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim); background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); padding: 2px 8px; border-radius: 4px;">Awaiting Query</span>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        <div style="background: rgba(9, 13, 22, 0.6); border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px;">
+          <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 600;">Area (ha)</div>
+          <div id="liveAreaVal" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: #FFF; margin-top: 2px;">--</div>
+        </div>
+        <div style="background: rgba(9, 13, 22, 0.6); border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px;">
+          <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 600;">Confidence</div>
+          <div id="liveConfVal" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--emerald); margin-top: 2px;">--</div>
+        </div>
+        <div style="background: rgba(9, 13, 22, 0.6); border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px;">
+          <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 600;">Task Router</div>
+          <div id="liveTaskVal" style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--accent); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ready</div>
+        </div>
+        <div style="background: rgba(9, 13, 22, 0.6); border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px;">
+          <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 600;">Centroid (WGS84)</div>
+          <div id="liveCentroidVal" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #E2E8F0; margin-top: 4px;">--</div>
+        </div>
+      </div>
+
+      <!-- Land-Cover Percentage Distribution Bar -->
+      <div id="landCoverSection" style="background: rgba(9, 13, 22, 0.6); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 600;">
+          <span>Land-Cover Distribution</span>
+          <span id="landCoverSummary" style="font-family: var(--font-mono); color: var(--text-dim);">Awaiting Scan</span>
+        </div>
+        
+        <!-- Multi-segment visual bar -->
+        <div style="height: 8px; width: 100%; background: #1E293B; border-radius: 999px; overflow: hidden; display: flex;">
+          <div id="barBuilt" style="width: 0%; background: #DC5A28; transition: width 0.3s;" title="Built-up"></div>
+          <div id="barVeg" style="width: 0%; background: #10B981; transition: width 0.3s;" title="Vegetation"></div>
+          <div id="barWater" style="width: 0%; background: #00D2FF; transition: width 0.3s;" title="Water"></div>
+          <div id="barBare" style="width: 0%; background: #64748B; transition: width 0.3s;" title="Bare Ground"></div>
+        </div>
+
+        <!-- Legend Pills -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; font-family: var(--font-mono); margin-top: 2px;">
+          <span style="display: flex; align-items: center; gap: 4px; color: #E2E8F0;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #DC5A28;"></span> Built: <b id="lblBuilt" style="color: #FFF;">--</b></span>
+          <span style="display: flex; align-items: center; gap: 4px; color: #E2E8F0;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #10B981;"></span> Veg: <b id="lblVeg" style="color: #FFF;">--</b></span>
+          <span style="display: flex; align-items: center; gap: 4px; color: #E2E8F0;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #00D2FF;"></span> Water: <b id="lblWater" style="color: #FFF;">--</b></span>
+          <span style="display: flex; align-items: center; gap: 4px; color: #E2E8F0;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #64748B;"></span> Bare: <b id="lblBare" style="color: #FFF;">--</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Studio Intelligence Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-tabs" style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; flex: 1;">
+        <button class="sidebar-tab-btn active" data-target="chatPane">🤖 AI Copilot</button>
+        <button class="sidebar-tab-btn" data-target="analyticsPane">📊 Land-Cover</button>
+        <button class="sidebar-tab-btn" data-target="tracePane">📋 Trace</button>
+      </div>
+      <div style="display: flex; gap: 4px; align-items: center; margin-right: 8px;">
+        <button id="btnScrollTop" class="btn" style="padding: 4px 7px; font-size: 11px; background: transparent; border-color: rgba(255,255,255,0.1); color: var(--text-dim);" title="Scroll to Top">⬆️</button>
+        <button id="btnScrollBottom" class="btn" style="padding: 4px 7px; font-size: 11px; background: transparent; border-color: rgba(255,255,255,0.1); color: var(--text-dim);" title="Scroll to Bottom">⬇️</button>
+        <button id="btnClearChat" class="btn" style="padding: 4px 8px; font-size: 11px; background: transparent; border-color: rgba(255,255,255,0.1); color: var(--text-dim);" title="Clear Chat History">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- 1. AI Copilot Pane -->
+      <div class="sidebar-pane active" id="chatPane" style="position: relative;">
+        <div class="chat-stream" id="messages">
+          <div class="chat-msg assistant">
+            <div class="msg-header">
+              <span class="msg-tag">SatQuery Agent</span>
+              <span>Ready</span>
+            </div>
+            <div>Welcome to SatQuery AI. Ask any natural-language remote sensing question or select a representative query below. The agent will orchestrate domain-adapted vision-language models and geospatial algorithms.</div>
+          </div>
+        </div>
+
+        <div class="prompt-library">
+          <span class="prompt-label">Mandatory Representative Queries:</span>
+          <div class="prompt-grid">
+            <button class="prompt-btn" data-q="Describe the land-cover and major objects visible in this image.">Describe Scene</button>
+            <button class="prompt-btn" data-q="Check whether the area is urban or rural.">Urban vs Rural VQA</button>
+            <button class="prompt-btn" data-q="Identify the green fields, buildings, and water in different colours.">Segment Land Cover</button>
+            <button class="prompt-btn" data-q="What changed between these two dates, and where did the change occur?">Compare Change (T1→T2)</button>
+            <button class="prompt-btn" data-q="Use the optical and SAR images together to identify built-up and water-covered regions.">Optical + SAR Joint</button>
+            <button class="prompt-btn" data-q="Has the built-up area increased, decreased, or remained unchanged?">Directional Change VQA</button>
+            <button class="prompt-btn" data-q="Would you say that any arable land lies next to pastures in the image?">BigEarthNet Adjacency QA</button>
+            <button class="prompt-btn" data-q="Are pastures present in this satellite scene?">BigEarthNet Presence QA</button>
+          </div>
+        </div>
+
+        <div class="composer-box">
+          <textarea id="query" class="composer-input" placeholder="Ask any question about the satellite scene..."></textarea>
+          <button id="ask" class="btn primary">Analyze</button>
+        </div>
+      </div>
+
+      <!-- 2. Analytics Pane -->
+      <div class="sidebar-pane" id="analyticsPane">
+        <div class="analytics-pane" id="analyticsBox">
+          <div class="metric-card">
+            <h3>Land-Cover Composition</h3>
+            <div class="chart-wrap">
+              <canvas id="landCoverChart"></canvas>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <h3>Spatial Telemetry</h3>
+            <div id="spatialStats">
+              <div class="stat-row"><span class="stat-key">Detected Area</span><span class="stat-val" id="statArea">--</span></div>
+              <div class="stat-row"><span class="stat-key">WGS84 Centroid</span><span class="stat-val" id="statCentroid">--</span></div>
+              <div class="stat-row"><span class="stat-key">Bounding Box</span><span class="stat-val" id="statBBox">--</span></div>
+              <div class="stat-row"><span class="stat-key">Confidence</span><span class="stat-val" id="statConfidence" style="color: var(--emerald);">--</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Audit Trace Pane -->
+      <div class="sidebar-pane" id="tracePane">
+        <div class="trace-pane" id="traceBox">
+          <div class="trace-step" style="opacity: 0.6;">
+            <div class="trace-num">-</div>
+            <div class="trace-body"><b>Audit Pipeline</b><span>Awaiting query execution...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// State Management
+const state = {
+  primary: null,
+  secondary: null,
+  overlay: null,
+  activeLayer: 'primary',
+  conversation: crypto.randomUUID(),
+  lastResult: null,
+  viewMode: 'gis', // 'gis' or 'pixel'
+};
+
+let currentAnalysisController = null;
+
+const $ = id => document.getElementById(id);
+
+// ── 1. GIS Leaflet Map Initialization ──────────────────────────
+const map = L.map('gisMap', {
+  center: [22.5726, 88.3639],
+  zoom: 14,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Satellite Basemap
+const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19
+}).addTo(map);
+
+let currentImageOverlay = null;
+let currentGeoJsonLayer = null;
+
+function renderGeoJsonEvidence(evidence) {
+  if (currentGeoJsonLayer) {
+    map.removeLayer(currentGeoJsonLayer);
+    currentGeoJsonLayer = null;
+  }
+  if (!evidence) return;
+  
+  const geojson = evidence.polygons_geojson || evidence.burn_scar?.polygons_geojson || evidence.after?.polygons_geojson || evidence.geojson;
+  if (!geojson) return;
+  if (geojson.type === 'FeatureCollection' && (!geojson.features || !geojson.features.length)) return;
+  
+  const isBurn = !!evidence.burn_scar || !!evidence.burn_area_hectares;
+  const isWater = !!evidence.water_percent || (evidence.area_hectares && !isBurn);
+  
+  const strokeColor = isBurn ? '#FF4500' : (isWater ? '#00D2FF' : '#10B981');
+  const fillColor = isBurn ? '#FF6347' : (isWater ? '#00B4D8' : '#34D399');
+  
+  currentGeoJsonLayer = L.geoJSON(geojson, {
+    style: {
+      color: strokeColor,
+      weight: 2.5,
+      opacity: 0.95,
+      fillColor: fillColor,
+      fillOpacity: 0.35
+    },
+    onEachFeature: (feature, layer) => {
+      const label = feature.properties?.label || (isBurn ? '🔥 Wildfire Burn Scar Perimeter' : '🎯 Detected Geographic Target');
+      const area = evidence.burn_area_hectares ? `${evidence.burn_area_hectares.toLocaleString()} ha (${evidence.burn_percentage}%)` : (evidence.area_hectares ? `${evidence.area_hectares} ha` : '');
+      layer.bindPopup(`<div style="font-family: var(--font-sans); padding: 4px;"><b>${label}</b><br><span style="color:#64748B; font-size:12px;">Ground Area: ${area}</span></div>`);
+      layer.bindTooltip(label, { permanent: false, direction: 'top' });
+    }
+  }).addTo(map);
+  
+  try {
+    const b = currentGeoJsonLayer.getBounds();
+    if (b.isValid()) {
+      map.fitBounds(b, { padding: [40, 40] });
+    }
+  } catch(e) {}
+}
+
+function updateMapOverlay(url, boundsWgs84) {
+  if (!url) return;
+  const opacity = parseInt($('layerOpacity').value) / 100.0;
+  
+  if (currentImageOverlay) {
+    map.removeLayer(currentImageOverlay);
+    currentImageOverlay = null;
+  }
+
+  if (boundsWgs84 && boundsWgs84.length === 2) {
+    // [[south, west], [north, east]]
+    currentImageOverlay = L.imageOverlay(url, boundsWgs84, { opacity: opacity, interactive: true }).addTo(map);
+    map.fitBounds(boundsWgs84, { padding: [30, 30] });
+  } else {
+    const center = map.getCenter();
+    const bounds = [[center.lat - 0.02, center.lng - 0.02], [center.lat + 0.02, center.lng + 0.02]];
+    currentImageOverlay = L.imageOverlay(url, bounds, { opacity: opacity }).addTo(map);
+  }
+}
+
+// Opacity Slider
+$('layerOpacity').addEventListener('input', e => {
+  const val = parseInt(e.target.value) / 100.0;
+  if (currentImageOverlay) currentImageOverlay.setOpacity(val);
+});
+
+// View Mode Toggle
+$('btnGisMode').onclick = () => {
+  state.viewMode = 'gis';
+  $('btnGisMode').classList.add('active');
+  $('btnPixelMode').classList.remove('active');
+  $('gisMap').style.display = 'block';
+  $('pixelViewer').style.display = 'none';
+  map.invalidateSize();
+};
+
+$('btnPixelMode').onclick = () => {
+  state.viewMode = 'pixel';
+  $('btnPixelMode').classList.add('active');
+  $('btnGisMode').classList.remove('active');
+  $('gisMap').style.display = 'none';
+  $('pixelViewer').style.display = 'flex';
+};
+
+// ── 2. Layer Switching ─────────────────────────────────────────
+function setActiveLayerTab(activeId, layerName) {
+  ['showPrimary', 'showSecondary', 'showOverlay'].forEach(id => $(id).classList.remove('active'));
+  $(activeId).classList.add('active');
+  $('hudLayer').textContent = layerName;
+}
+
+$('showPrimary').onclick = () => {
+  if (!state.primary) return;
+  state.activeLayer = 'primary';
+  $('viewerImage').src = state.primary.preview_url;
+  updateMapOverlay(state.primary.preview_url, state.primary.metadata.bounds_wgs84);
+  setActiveLayerTab('showPrimary', 'Primary (T1)');
+};
+
+$('showSecondary').onclick = () => {
+  if (!state.secondary) return;
+  state.activeLayer = 'secondary';
+  $('viewerImage').src = state.secondary.preview_url;
+  updateMapOverlay(state.secondary.preview_url, state.secondary.metadata.bounds_wgs84);
+  setActiveLayerTab('showSecondary', 'Secondary (T2 / SAR)');
+};
+
+$('showOverlay').onclick = () => {
+  if (!state.overlay) return;
+  state.activeLayer = 'overlay';
+  $('viewerImage').src = state.overlay;
+  const bounds = state.primary?.metadata?.bounds_wgs84 || null;
+  updateMapOverlay(state.overlay, bounds);
+  setActiveLayerTab('showOverlay', 'Evidence Overlay');
+};
+
+// ── 3. Sidebar Tab Switching ───────────────────────────────────
+document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.sidebar-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sidebar-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.target).classList.add('active');
+  };
+});
+
+// ── 4. Chart.js Land-Cover Analytics ───────────────────────────
+let landCoverChartInstance = null;
+
+function initOrUpdateChart(water=0, veg=0, built=0, bare=0) {
+  const ctx = $('landCoverChart').getContext('2d');
+  const sum = water + veg + built + bare;
+  const data = {
+    labels: sum > 0 ? ['Built-up Fabric', 'Vegetation', 'Water Bodies', 'Bare / Other'] : ['Awaiting Analysis'],
+    datasets: [{
+      data: sum > 0 ? [built, veg, water, bare] : [100],
+      backgroundColor: sum > 0 ? ['#DC5A28', '#10B981', '#00D2FF', '#64748B'] : ['#334155'],
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  };
+  
+  if (landCoverChartInstance) {
+    landCoverChartInstance.data = data;
+    landCoverChartInstance.update();
+  } else {
+    landCoverChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 10.5, family: 'Plus Jakarta Sans' } } }
+        },
+        cutout: '70%'
+      }
+    });
+  }
+}
+
+// ── 5. Upload & Demo Loading with Clean State Reset ────────────
+function resetAnalysisState() {
+  if (currentAnalysisController) {
+    currentAnalysisController.abort();
+    currentAnalysisController = null;
+  }
+  if (currentGeoJsonLayer) {
+    map.removeLayer(currentGeoJsonLayer);
+    currentGeoJsonLayer = null;
+  }
+  state.overlay = null;
+  state.lastResult = null;
+  $('ask').disabled = false;
+  $('ask').textContent = 'Analyze';
+
+  // Reset live telemetry indicators
+  $('liveAreaVal').textContent = '--';
+  $('liveConfVal').textContent = '--';
+  $('liveTaskVal').textContent = 'Ready';
+  $('statArea').textContent = '--';
+  $('statCentroid').textContent = '--';
+  $('statBBox').textContent = '--';
+  $('statConfidence').textContent = '--';
+  $('evidenceBadge').textContent = 'Awaiting Query';
+  $('evidenceBadge').style.color = 'var(--text-dim)';
+  $('evidenceBadge').style.borderColor = 'var(--panel-border)';
+
+  // Reset progress bars and labels
+  $('barBuilt').style.width = '0%';
+  $('barVeg').style.width = '0%';
+  $('barWater').style.width = '0%';
+  $('barBare').style.width = '0%';
+  $('lblBuilt').textContent = '--';
+  $('lblVeg').textContent = '--';
+  $('lblWater').textContent = '--';
+  $('lblBare').textContent = '--';
+
+  initOrUpdateChart(0, 0, 0, 0);
+}
+
+async function upload(kind, file) {
+  resetAnalysisState();
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  let j = {};
+  try {
+    j = await r.json();
+  } catch(e) {
+    if (!r.ok) throw new Error(`Upload server error (HTTP ${r.status}).`);
+  }
+  if (!r.ok) throw new Error(j.detail || 'Upload failed');
+  
+  state[kind] = j;
+  $(kind + 'Meta').textContent = `${j.filename} (${j.metadata.width}×${j.metadata.height})`;
+  
+  if (kind === 'primary') {
+    $('hudDimensions').textContent = `${j.metadata.width}×${j.metadata.height}`;
+    $('hudCrs').textContent = j.metadata.crs ? j.metadata.crs.split(':').pop() : 'WGS84';
+    if (j.metadata.centroid_wgs84) {
+      $('hudCentroid').textContent = `${j.metadata.centroid_wgs84.lat}° N, ${j.metadata.centroid_wgs84.lon}° E`;
+      map.setView([j.metadata.centroid_wgs84.lat, j.metadata.centroid_wgs84.lon], 14);
+    }
+    $('viewerImage').src = j.preview_url;
+    updateMapOverlay(j.preview_url, j.metadata.bounds_wgs84);
+    setActiveLayerTab('showPrimary', 'Primary Image');
+  }
+}
+
+$('primaryFile').addEventListener('change', async e => {
+  if (e.target.files[0]) try { await upload('primary', e.target.files[0]); } catch(err) { alert(err.message); }
+});
+$('secondaryFile').addEventListener('change', async e => {
+  if (e.target.files[0]) try { await upload('secondary', e.target.files[0]); } catch(err) { alert(err.message); }
+});
+
+const SCENE_METADATA = {
+  kolkata: {
+    location: 'Kolkata Metropolitan Corridor, India',
+    date: 'April 14, 2023',
+    sensor: 'High-Res Optical (0.5m GSD)'
+  },
+  sentinel2: {
+    location: 'San Francisco Bay & Peninsula, USA',
+    date: 'June 18, 2023',
+    sensor: 'Copernicus Sentinel-2A L2A (10m MSI)'
+  },
+  bitemporal: {
+    location: 'Sierra Nevada / Paradise, California',
+    date: 'T1: Oct 22, 2018 ➔ T2: Nov 16, 2018',
+    sensor: 'Sentinel-2 Multi-Date (Camp Fire)'
+  },
+  optical_sar: {
+    location: 'Hooghly River & Kolkata / Howrah, India',
+    date: 'November 08, 2022',
+    sensor: 'ISRO Cartosat-2S (0.8m) + RISAT-1A SAR'
+  },
+  bigearthnet: {
+    location: 'Upper Austria / Bavaria (BigEarthNet-MM Corridor)',
+    date: 'June 12-13, 2017 (arXiv:2603.29630)',
+    sensor: 'Sentinel-1 RTC SAR (VV/VH) + Sentinel-2 MSI (10m L2A)'
+  },
+  real_sf: {
+    location: 'San Francisco Bay & Embarcadero, CA',
+    date: 'August 16 & 28, 2024',
+    sensor: 'Sentinel-2 Optical (10m TCI) + Sentinel-1 SAR (RTC Dual-Pol)'
+  },
+  ec_desert: {
+    location: 'Grand Erg Oriental, Sahara Desert, Algeria',
+    date: 'September 04, 2023',
+    sensor: 'Copernicus Sentinel-2 L2A Sand Dunes'
+  },
+  ec_delta: {
+    location: 'Ganges Delta & Sundarbans, Bangladesh/India',
+    date: 'October 10, 2023',
+    sensor: 'Sentinel-2 MSI Coastal Water'
+  },
+  ec_urban: {
+    location: 'Paris Metropolitan Area, France',
+    date: 'May 20, 2023',
+    sensor: 'European Space Agency Optical'
+  },
+  ec_forest: {
+    location: 'Amazon Rainforest Basin, Brazil',
+    date: 'July 15, 2023',
+    sensor: 'Landsat-8 OLI Forest Canopy'
+  },
+  ec_water: {
+    location: 'Mediterranean Sea Pelagic Waters',
+    date: 'August 02, 2023',
+    sensor: 'Sentinel-2 Multispectral'
+  },
+  ec_agri: {
+    location: 'Dnieper River Agricultural Belt, Ukraine',
+    date: 'June 28, 2023',
+    sensor: 'Sentinel-2 MSI Farmland'
+  },
+  ec_suburban: {
+    location: 'Greater London Suburban District, UK',
+    date: 'July 05, 2023',
+    sensor: 'High-Res Optical Orthomosaic'
+  }
+};
+
+async function loadDemo(sampleKey) {
+  try {
+    resetAnalysisState();
+    const r = await fetch('/api/load_demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sample_key: sampleKey }),
+    });
+    let j = {};
+    try {
+      j = await r.json();
+    } catch(e) {
+      if (!r.ok) throw new Error(`Server is initializing (HTTP ${r.status}). Please retry in a few seconds.`);
+    }
+    if (!r.ok) throw new Error(j.detail || `Failed to load demo (HTTP ${r.status})`);
+
+    state.primary = j.primary;
+    $('primaryMeta').textContent = `${j.primary.filename} (${j.primary.metadata.width}×${j.primary.metadata.height})`;
+    $('hudDimensions').textContent = `${j.primary.metadata.width}×${j.primary.metadata.height}`;
+    $('hudCrs').textContent = j.primary.metadata.crs ? j.primary.metadata.crs.split(':').pop() : 'EPSG:4326';
+    
+    // Update Floating GIS Mission Tag
+    const meta = SCENE_METADATA[sampleKey] || {
+      location: j.primary.filename,
+      date: new Date().toISOString().split('T')[0],
+      sensor: j.primary.metadata.crs || 'Satellite Raster'
+    };
+    $('gisLocationName').textContent = meta.location;
+    $('gisAcquisitionDate').textContent = `📅 ${meta.date}`;
+    $('gisMissionSensor').textContent = `🛰️ ${meta.sensor}`;
+
+    if (j.primary.metadata.centroid_wgs84) {
+      $('hudCentroid').textContent = `${j.primary.metadata.centroid_wgs84.lat}° N, ${j.primary.metadata.centroid_wgs84.lon}° E`;
+      map.setView([j.primary.metadata.centroid_wgs84.lat, j.primary.metadata.centroid_wgs84.lon], 14);
+    }
+
+    $('viewerImage').src = j.primary.preview_url;
+    updateMapOverlay(j.primary.preview_url, j.primary.metadata.bounds_wgs84);
+    setActiveLayerTab('showPrimary', 'Primary Image');
+
+    if (j.secondary) {
+      state.secondary = j.secondary;
+      $('secondaryMeta').textContent = `${j.secondary.filename} (${j.secondary.metadata.width}×${j.secondary.metadata.height})`;
+    } else {
+      state.secondary = null;
+      $('secondaryMeta').textContent = 'None (Optional)';
+    }
+
+    addMsg(`Loaded satellite scene: ${j.title}`, 'assistant', 'Scene Telemetry');
+  } catch(err) {
+    alert(err.message);
+  }
+}
+
+document.querySelectorAll('.demo-btn').forEach(b => {
+  b.onclick = async () => {
+    document.querySelectorAll('.preset-pill').forEach(p => p.classList.remove('active'));
+    b.classList.add('active');
+    await loadDemo(b.dataset.key);
+    if (b.dataset.q) {
+      $('query').value = b.dataset.q;
+      setTimeout(() => $('ask').click(), 250);
+    }
+  };
+});
+
+document.querySelectorAll('.ec-btn').forEach(b => {
+  b.onclick = async () => {
+    document.querySelectorAll('.preset-pill').forEach(p => p.classList.remove('active'));
+    b.classList.add('active');
+    await loadDemo(b.dataset.ec);
+    $('query').value = b.dataset.q;
+    setTimeout(() => $('ask').click(), 250);
+  };
+});
+
+document.querySelectorAll('.prompt-btn').forEach(b => {
+  b.onclick = () => {
+    $('query').value = b.dataset.q;
+    $('ask').click();
+  };
+});
+
+// ── 6. Query Analysis Execution ────────────────────────────────
+function addMsg(text, who, tag='Agent Output') {
+  const stream = $('messages');
+  const d = document.createElement('div');
+  d.className = 'chat-msg ' + who;
+  if (who === 'assistant') {
+    d.innerHTML = `<div class="msg-header"><span class="msg-tag">${tag}</span></div><div>${text}</div>`;
+  } else {
+    d.textContent = text;
+  }
+  stream.appendChild(d);
+  stream.scrollTop = stream.scrollHeight;
+  requestAnimationFrame(() => {
+    stream.scrollTop = stream.scrollHeight;
+  });
+}
+
+$('btnScrollTop').onclick = (e) => {
+  e.stopPropagation();
+  $('messages').scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+$('btnScrollBottom').onclick = (e) => {
+  e.stopPropagation();
+  $('messages').scrollTo({ top: $('messages').scrollHeight, behavior: 'smooth' });
+};
+
+$('btnClearChat').onclick = (e) => {
+  e.stopPropagation();
+  $('messages').innerHTML = `
+    <div class="chat-msg assistant">
+      <div class="msg-header"><span class="msg-tag">SatQuery Agent</span><span>Ready</span></div>
+      <div>Chat stream cleared. Ask any new question or click a representative query below.</div>
+    </div>`;
+};
+
+function renderAnalyticsAndEvidence(j) {
+  const ev = j.evidence;
+  if (!ev) return;
+
+  // 1. Task & Confidence
+  $('liveTaskVal').textContent = (j.task || 'Analysis').toUpperCase();
+  $('liveConfVal').textContent = Math.round(j.confidence * 100) + '%';
+  $('statConfidence').textContent = Math.round(j.confidence * 100) + '%';
+
+  // 2. Spatial Metrics (Area, Centroid, Bounding Box)
+  if (ev.burn_area_hectares != null) {
+    $('liveAreaVal').textContent = ev.burn_area_hectares.toLocaleString() + ' ha';
+    $('statArea').textContent = `${ev.burn_area_hectares.toLocaleString()} ha (${ev.burn_percentage}%)`;
+    $('evidenceBadge').textContent = '🔥 Burn Scar Perimeter Active';
+    $('evidenceBadge').style.color = '#FFA500';
+    $('evidenceBadge').style.borderColor = 'rgba(255,165,0,0.5)';
+  } else {
+    const area = ev.area_hectares != null ? ev.area_hectares : (ev.after?.area_hectares != null ? ev.after.area_hectares : null);
+    if (area != null) {
+      $('liveAreaVal').textContent = area + ' ha';
+      $('statArea').textContent = area + ' ha';
+    } else if (ev.delta_percentage_points != null) {
+      $('liveAreaVal').textContent = (ev.delta_percentage_points >= 0 ? '+' : '') + ev.delta_percentage_points + ' pp';
+      $('statArea').textContent = (ev.delta_percentage_points >= 0 ? '+' : '') + ev.delta_percentage_points + ' pp';
+    }
+  }
+
+  const centroid = ev.centroid_wgs84 || ev.after?.centroid_wgs84 || state.primary?.metadata?.centroid_wgs84;
+  if (centroid) {
+    $('liveCentroidVal').textContent = `${centroid.lat}° N, ${centroid.lon}° E`;
+    $('statCentroid').textContent = `${centroid.lat}° N, ${centroid.lon}° E`;
+  }
+
+  if (j.bounding_box) {
+    $('statBBox').textContent = `[${j.bounding_box.x1}, ${j.bounding_box.y1}, ${j.bounding_box.x2}, ${j.bounding_box.y2}]`;
+  }
+
+  // 3. Land-Cover Percentage Breakdown
+  const w = ev.water_percent != null ? ev.water_percent : 0;
+  const v = ev.vegetation_percent != null ? ev.vegetation_percent : 0;
+  const b = ev.built_up_percent != null ? ev.built_up_percent : 0;
+  const u = ev.unclassified_percent != null ? ev.unclassified_percent : 0;
+
+  if (w || v || b || u) {
+    $('barBuilt').style.width = b + '%';
+    $('barVeg').style.width = v + '%';
+    $('barWater').style.width = w + '%';
+    $('barBare').style.width = u + '%';
+
+    $('lblBuilt').textContent = b.toFixed(1) + '%';
+    $('lblVeg').textContent = v.toFixed(1) + '%';
+    $('lblWater').textContent = w.toFixed(1) + '%';
+    $('lblBare').textContent = u.toFixed(1) + '%';
+
+    initOrUpdateChart(w, v, b, u);
+  }
+}
+
+function renderTrace(items) {
+  if (!items || !items.length) return;
+  $('traceBox').innerHTML = items.map((x, i) => `
+    <div class="trace-step">
+      <div class="trace-num">${i + 1}</div>
+      <div class="trace-body"><b>${x.step}</b><span>${x.detail}</span></div>
+    </div>`).join('');
+}
+
+function downloadResult() {
+  if (!state.lastResult) { alert('Execute an analysis query first to download the report.'); return; }
+  const blob = new Blob([JSON.stringify(state.lastResult, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `satquery-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+window.downloadResult = downloadResult;
+
+function downloadExecutiveReport() {
+  if (!state.lastResult) { alert('Execute an analysis query first to generate the executive report.'); return; }
+  const r = state.lastResult;
+  const p = state.primary || {};
+  const s = state.secondary;
+  const ev = r.evidence || {};
+  const trace = r.trace || r.execution_trace || [];
+  
+  const reportHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SatQuery AI — Geospatial Intelligence Assessment Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 40px; color: #1E293B; background: #F8FAFC; line-height: 1.5; }
+    .report-card { max-width: 860px; margin: 0 auto; background: #FFFFFF; padding: 36px 44px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #E2E8F0; }
+    .header { border-bottom: 2px solid #0EA5E9; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 22px; font-weight: 800; color: #0F172A; }
+    .badge { background: #0EA5E9; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #64748B; letter-spacing: 0.05em; margin-bottom: 10px; border-bottom: 1px solid #F1F5F9; padding-bottom: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid-item { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 6px; }
+    .grid-label { font-size: 11px; color: #64748B; font-weight: 600; text-transform: uppercase; }
+    .grid-val { font-size: 13.5px; color: #0F172A; font-weight: 700; margin-top: 2px; }
+    .answer-box { background: #F0FDF4; border: 1px solid #BBF7D0; padding: 14px 18px; border-radius: 8px; font-size: 14px; color: #166534; font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+    th { background: #F1F5F9; color: #475569; text-align: left; padding: 8px 10px; font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; color: #334155; }
+    .btn-print { background: #0F172A; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 20px; }
+    @media print { .btn-print { display: none; } body { margin: 0; background: white; } .report-card { border: none; box-shadow: none; padding: 0; } }
+  </style>
+</head>
+<body>
+  <div style="max-width: 860px; margin: 0 auto;">
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="report-card">
+    <div class="header">
+      <div>
+        <div class="title">🛰️ SatQuery AI Intelligence Assessment Report</div>
+        <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Mission & Scene Audit • Generated ${new Date().toUTCString()}</div>
+      </div>
+      <div class="badge">${r.task || 'ANALYSIS'}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">1. Natural Language Query & Agent Synthesis</div>
+      <div style="margin-bottom: 8px; font-size: 13.5px;"><b>Query:</b> "${r.query || 'N/A'}"</div>
+      <div class="answer-box"><b>Agent Response:</b> ${r.answer || 'N/A'}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">2. Sensor & Scene Acquisition Metadata</div>
+      <div class="grid">
+        <div class="grid-item"><div class="grid-label">Primary Scene</div><div class="grid-val">${p.filename || 'N/A'} (${p.metadata?.crs || 'EPSG:4326'})</div></div>
+        <div class="grid-item"><div class="grid-label">Secondary / Multi-Date</div><div class="grid-val">${s ? s.filename : 'Single Observation'}</div></div>
+        <div class="grid-item"><div class="grid-label">Centroid Coordinates</div><div class="grid-val">${p.metadata?.centroid_wgs84 ? `${p.metadata.centroid_wgs84.lat}° N, ${p.metadata.centroid_wgs84.lon}° E` : 'WGS84 Available'}</div></div>
+        <div class="grid-item"><div class="grid-label">Specialist Tool</div><div class="grid-val">${r.tool || 'RS-VLM Engine'}</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">3. Spatial Telemetry & Radiometric Evidence</div>
+      <div class="grid">
+        <div class="grid-item"><div class="grid-label">Detected Target Area</div><div class="grid-val">${ev.burn_area_hectares != null ? `${ev.burn_area_hectares.toLocaleString()} ha (${ev.burn_percentage}%)` : (ev.area_hectares != null ? `${ev.area_hectares} ha` : (ev.delta_percentage_points != null ? `${ev.delta_percentage_points} pp` : 'Calculated'))}</div></div>
+        <div class="grid-item"><div class="grid-label">Model Confidence</div><div class="grid-val">${Math.round((r.confidence || 0.9) * 100)}%</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">4. Auditable Agent Execution Summary & Tool Sequence</div>
+      <table>
+        <thead>
+          <tr><th style="width: 40px;">#</th><th>Pipeline Step</th><th>Details & Parameters</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          ${trace.map((t, idx) => `
+            <tr>
+              <td><b>${idx + 1}</b></td>
+              <td><b>${t.step}</b></td>
+              <td>${typeof t.detail === 'object' ? JSON.stringify(t.detail) : t.detail}</td>
+              <td><span style="color: #16A34A; font-weight: 700;">OK</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 30px; border-top: 1px solid #E2E8F0; padding-top: 12px; font-size: 11px; color: #94A3B8; display: flex; justify-content: space-between;">
+      <span>SatQuery AI — Agentic Vision-Language Geospatial Assistant</span>
+      <span>ISO/OGC Compliant Audit Report</span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const reportWin = window.open('', '_blank');
+  if (reportWin) {
+    reportWin.document.write(reportHtml);
+    reportWin.document.close();
+  } else {
+    // Fallback: download as .html file if popup is blocked
+    const blob = new Blob([reportHtml], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `satquery-intelligence-report-${Date.now()}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+}
+window.downloadExecutiveReport = downloadExecutiveReport;
+
+$('ask').onclick = async () => {
+  const q = $('query').value.trim();
+  if (!state.primary) { alert('Please load or upload a satellite image first.'); return; }
+  if (!q) return;
+
+  const currentPrimaryId = state.primary.id;
+  currentAnalysisController = new AbortController();
+
+  addMsg(q, 'user');
+  $('ask').disabled = true;
+  $('ask').textContent = 'Analyzing…';
+
+  try {
+    const payload = {
+      primary_id: state.primary.id,
+      secondary_id: state.secondary?.id || null,
+      query: q,
+      conversation_id: state.conversation
+    };
+    const r = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: currentAnalysisController.signal
+    });
+    let j = {};
+    try {
+      j = await r.json();
+    } catch(e) {
+      if (!r.ok) throw new Error(`Server busy or spinning up (HTTP ${r.status}). Please retry in a few seconds.`);
+    }
+    if (!r.ok) throw new Error(j.detail || `Analysis failed (HTTP ${r.status})`);
+
+    // Prevent race condition: if user switched image while this query was computing, discard overlay
+    if (state.primary?.id !== currentPrimaryId) {
+      console.log('Discarding stale analysis overlay for previous image');
+      return;
+    }
+
+    state.lastResult = j;
+    if (j.overlay_url) {
+      state.overlay = j.overlay_url;
+      $('viewerImage').src = j.overlay_url;
+      const bounds = state.primary?.metadata?.bounds_wgs84 || null;
+      updateMapOverlay(j.overlay_url, bounds);
+      setActiveLayerTab('showOverlay', 'Evidence Overlay');
+    }
+
+    renderGeoJsonEvidence(j.evidence);
+    addMsg(j.answer, 'assistant', `${j.task.toUpperCase()} • ${j.tool}`);
+    renderAnalyticsAndEvidence(j);
+    renderTrace(j.execution_trace);
+  } catch(err) {
+    if (err.name === 'AbortError') {
+      console.log('Analysis cancelled due to image switch');
+    } else {
+      addMsg('Error: ' + err.message, 'assistant', 'Execution Error');
+    }
+  } finally {
+    $('ask').disabled = false;
+    $('ask').textContent = 'Analyze';
+    currentAnalysisController = null;
+  }
+};
+
+document.querySelectorAll('.prompt-btn').forEach(b => {
+  b.onclick = () => {
+    $('query').value = b.dataset.q;
+    $('query').focus();
+  };
+});
+
+$('query').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    $('ask').click();
+  }
+});
+
+// Initial demo load
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadDemo('kolkata');
+  initOrUpdateChart(0, 0, 0, 0);
+  $('query').value = "Describe the land-cover and major objects visible in this image.";
+  setTimeout(() => $('ask').click(), 350);
+});
+</script>
+</body>
+</html>

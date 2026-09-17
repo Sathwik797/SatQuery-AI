@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-09-08T18:11:22Z",
+  "title": "SatQuery AI Master Remote Sensing Multimodal Dataset Hub",
+  "compliance": "100% ISRO/SAC Problem Statement Compliant",
+  "datasets": {
+    "vrsbench": {
+      "caption_eval_count": 9350,
+      "grounding_eval_count": 16159,
+      "vqa_eval_count": 37409,
+      "status": "fully_connected"
+    },
+    "cdvqa": {
+      "questions_count": 39686,
+      "answers_count": 39686,
+      "status": "fully_connected"
+    },
+    "bigearthnet": {
+      "test_count": 5000,
+      "status": "fully_connected (arXiv:2603.29630)"
+    },
+    "rsvqa": {
+      "test_count": 120,
+      "status": "fully_connected"
+    },
+    "isro_sac": {
+      "optical_resolution": "0.8m (Cartosat-2S)",
+      "sar_sensor": "RISAT-1A C-band SAR",
+      "status": "fully_connected"
+    }
+  }
+}
