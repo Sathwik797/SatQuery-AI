@@ -1,3 +1,13 @@
+---
+title: SatQuery AI
+emoji: 🛰️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # SatQuery AI
 
 **SatQuery AI** is an agentic, query-driven vision-language platform engineered for multimodal Earth Observation (EO) and remote-sensing image understanding. It dynamically synthesizes multi-step execution plans to orchestrate a domain-adapted vision-language backbone (`GeoRSCLIP` + trained `RSVQA` MLP adapter + `DenseLandCoverSegHead`) alongside modular geospatial spectral and radar processing engines.
