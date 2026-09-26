@@ -4,7 +4,6 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
-ENV PORT=7860
 
 # Install system C-libraries required by OpenCV and Rasterio/GDAL
 RUN apt-get update && \
