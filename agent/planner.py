@@ -132,7 +132,7 @@ def build_plan(
                 steps,
                 "land_cover_segmenter",
                 {
-                    "classes": ["water", "vegetation", "built_up"],
+                    "classes": ["water", "vegetation", "built_up", "sand"],
                 },
             )
 
