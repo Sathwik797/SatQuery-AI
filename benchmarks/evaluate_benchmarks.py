@@ -250,26 +250,17 @@ def run_benchmark_evaluation(
             cap_bleus.append(bleu.get("bleu_1", 0.0))
             cap_rouges.append(rouge)
 
-        # 2c. Active VRSBench VQA Evaluation on Authentic VRSBench Imagery
-        vrs_category = item.get("category", "object")
-        q_pos = f"Is there a {vrs_category} in this remote sensing image?"
-        res_vqa = client.post("/api/analyze", json={
-            "primary_id": vrs_id,
-            "query": q_pos,
-        }).json()
-        pred_vqa = str(res_vqa.get("answer", "")).strip().lower()
-        vrs_vqa_preds.append(pred_vqa)
-        vrs_vqa_gts.append("yes")
-
-        neg_cat = "harbor" if vrs_category != "harbor" else "airport"
-        q_neg = f"Is there a {neg_cat} in this remote sensing image?"
-        res_neg = client.post("/api/analyze", json={
-            "primary_id": vrs_id,
-            "query": q_neg,
-        }).json()
-        pred_neg = str(res_neg.get("answer", "")).strip().lower()
-        vrs_vqa_preds.append(pred_neg)
-        vrs_vqa_gts.append("no")
+        # 2c. Evaluate VRSBench VQA only from official question/answer pairs.
+        vqa_question = item.get("question")
+        vqa_answer = item.get("answer")
+        if vqa_question is not None and vqa_answer is not None:
+            res_vqa = client.post("/api/analyze", json={
+                "primary_id": vrs_id,
+                "query": vqa_question,
+            }).json()
+            pred_vqa = str(res_vqa.get("answer", "")).strip().lower()
+            vrs_vqa_preds.append(pred_vqa)
+            vrs_vqa_gts.append(str(vqa_answer).strip().lower())
 
         vrs_vqa_records.append({
             "image": item.get("image_name"),
@@ -293,6 +284,7 @@ def run_benchmark_evaluation(
         "vqa": {
             "total_available_eval_questions": catalog.get("vrsbench_vqa_total", 37409),
             "evaluated_questions": len(vrs_vqa_preds),
+            "evaluation_protocol": "Official VRSBench question/answer pairs only; no synthetic questions.",
             "top1_accuracy_percent": vrs_vqa_acc,
             "binary_accuracy_percent": vrs_vqa_metrics["average_accuracy"],
         },
