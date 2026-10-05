@@ -3,12 +3,11 @@ geospatial/multi_class_segmenter.py
 =====================================
 Multi-class land-cover segmentation with two modes:
 
-  1. AI mode (default)  — GeoRSCLIP zero-shot patch classification.
-     Uses the already-loaded GeoRSCLIP ViT-B/32 to classify each image
-     tile against text prompts for water / vegetation / built-up / bare.
+  Deterministic spectral mode — Physics-based NDWI / NDVI / NDBI / RGB heuristics
+  classify pixels into water / vegetation / built-up / bare-sand classes.
 
-  2. Spectral fallback — Physics-based NDWI / NDVI / NDBI / RGB heuristics
-     when the VLM model is not available.
+  The experimental DenseLandCoverSegHead is not used for production segmentation
+  until it has a trained checkpoint.
 
 Colour convention (RGB):
   - Water      : deep blue    ( 30, 100, 200 )
@@ -49,7 +48,7 @@ def segment_land_cover(
     """
     Multi-class land-cover segmentation.
 
-    Uses physics-based spectral indices (NDWI / NDVI / NDBI / Sand spectral heuristics)
+    Uses deterministic spectral indices (NDWI / NDVI / NDBI / RGB sand heuristics)
     for pixel-level classification.
 
     Returns
@@ -91,35 +90,14 @@ def segment_land_cover(
     # Desert / Sand Dunes: warm golden-yellow reflectance (high Red & Green, low Blue)
     desert_binary = (r > 95) & (g > 75) & (r >= b + 6) & (~water_binary) & (~veg_binary)
 
-    # ----------------------------------------- Learned Dense Neural Head + Bayesian MAP
+    # ------------------------------------------------ deterministic class fusion
+    # Keep production segmentation deterministic until a trained neural checkpoint
+    # is available. Priority: water > vegetation > built-up > desert/sand.
     mean_entropy = 0.0
-    try:
-        from models.land_cover_head import predict_dense_land_cover, bayesian_map_ensemble
-        neural_res = predict_dense_land_cover(rgb)
-        neural_probs = neural_res["probabilities"]
-        mean_entropy = neural_res.get("mean_entropy", 0.0)
-
-        posterior_probs = bayesian_map_ensemble(
-            neural_probs,
-            water_binary.astype(np.float32),
-            veg_binary.astype(np.float32),
-            built_binary.astype(np.float32),
-            desert_binary.astype(np.float32),
-            neural_weight=0.65,
-        )
-        map_labels = np.argmax(posterior_probs, axis=-1)
-        # Class masks from Bayesian MAP posterior
-        water_binary = (map_labels == 0)
-        veg_binary = (map_labels == 1)
-        built_binary = (map_labels == 2)
-        desert_binary = (map_labels == 3)
-        segmentation_engine = "DenseLandCoverSegHead (Learned CNN + Bayesian Spectral MAP)"
-    except Exception as exc:
-        segmentation_engine = f"Rule-based Spectral Fallback ({exc})"
-        # Priority fallback: water > veg > built > desert
-        veg_binary    = veg_binary    & ~water_binary
-        built_binary  = built_binary  & ~water_binary & ~veg_binary & ~desert_binary
-        desert_binary = desert_binary & ~water_binary & ~veg_binary
+    segmentation_engine = "Deterministic Spectral Segmentation (NDWI/NDVI/NDBI/RGB heuristics)"
+    veg_binary    = veg_binary    & ~water_binary
+    built_binary  = built_binary  & ~water_binary & ~veg_binary
+    desert_binary = desert_binary & ~water_binary & ~veg_binary & ~built_binary
 
     overlay = rgb.copy().astype(np.float32)
 
@@ -165,7 +143,7 @@ def segment_land_cover(
         "desert": {
             "pixels": desert_count,
             "percent": round(100.0 * desert_count / total, 2),
-            "method": "Radiometric Sand/Dune + Neural Prob",
+            "method": "Radiometric Sand/Dune RGB heuristic",
         },
         "unclassified": {
             "pixels": int(max(0, total - water_binary.sum() - veg_binary.sum() - built_binary.sum() - desert_count)),
