@@ -10,7 +10,7 @@ pinned: false
 
 # SatQuery AI
 
-**SatQuery AI** is an agentic, query-driven vision-language platform engineered for multimodal Earth Observation (EO) and remote-sensing image understanding. It dynamically synthesizes multi-step execution plans to orchestrate a domain-adapted vision-language backbone (`GeoRSCLIP` + trained `RSVQA` MLP adapter) alongside deterministic geospatial, spectral, radar, and segmentation engines alongside modular geospatial spectral and radar processing engines.
+**SatQuery AI** is an agentic, query-driven vision-language platform engineered for multimodal Earth Observation (EO) and remote-sensing image understanding. It dynamically synthesizes multi-step execution plans to orchestrate a domain-adapted vision-language backbone (`GeoRSCLIP` + trained `RSVQA` MLP adapter) alongside modular deterministic geospatial, spectral, radar, and segmentation engines.
 
 ---
 
@@ -85,7 +85,7 @@ flowchart TD
 
     subgraph Specialist Execution Engines
         Dispatcher -->|Task: VQA| RSVLM[GeoRSCLIP + RSVQA MLP Adapter]
-        Dispatcher -->|Task: Segmentation| SegHead[DenseLandCoverSegHead + Bayesian MAP]
+        Dispatcher -->|Task: Segmentation| SegHead[Deterministic Spectral Segmenter]
         Dispatcher -->|Task: Spectral / SAR| GIS[Deterministic GIS & Radiometric Tools]
         Dispatcher -->|Task: Change Analysis| ChangeEngine[Bi-Temporal Change Engine]
         Dispatcher -->|Task: Optical-SAR Fusion| FusionEngine[Optical-SAR Consensus Engine]
@@ -120,9 +120,9 @@ flowchart TD
    - `build_plan()` generates an ordered sequence of specialist steps (e.g., `input_validator` $\rightarrow$ `change_engine` $\rightarrow$ `geospatial_tools` $\rightarrow$ `result_integrator`).
 3. **Specialist Tool Execution**:
    - The backend executes each step via registered handlers in `models/registry.py`.
-   - Spectral indices (NDWI, NDVI, NDBI) and calibrated SAR backscatter masks are generated.
+   - Spectral indices (NDWI, NDVI, NDBI) and heuristic SAR backscatter masks are generated.
    - For segmentation, deterministic NDWI / NDVI / NDBI / RGB heuristics are used in the production path. The experimental neural head remains isolated until a trained checkpoint is available.
-   - For VQA, GeoRSCLIP visual and text embeddings are passed through the trained `RSVQAAdapter` to yield top-k predictions with calibrated confidence.
+   - For VQA, GeoRSCLIP visual and text embeddings are passed through the trained `RSVQAAdapter` to yield top-k predictions with model confidence estimates.
 4. **Evidence & Audit Synthesis**:
    - Generates visual evidence overlays (PNG preview, difference masks, bounding box annotations).
    - Computes WGS84 geographic centroids (`latitude`, `longitude`) and affected area in hectares.
@@ -551,7 +551,7 @@ curl -X POST http://localhost:8000/api/analyze \
 
 ## Validation and Testing
 
-The repository includes a suite of 29 test and audit scripts under `tests/` and `scratch/`:
+The repository includes a suite of test and audit scripts under `tests/` and `scratch/`, plus benchmark evaluators under `benchmarks/`.
 
 ```bash
 # Run end-to-end full system audit across all tasks
