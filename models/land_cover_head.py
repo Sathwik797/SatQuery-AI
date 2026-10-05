@@ -1,7 +1,8 @@
 """
 models/land_cover_head.py
 =========================
-Learned Dense Semantic Segmentation Neural Network Head for Remote-Sensing Imagery.
+Experimental Dense Semantic Segmentation Neural Network Head for Remote-Sensing Imagery.
+The repository currently does not ship a trained checkpoint for this head; its weights are initialized at runtime.
 Adapted for 4-class multi-spectral / RGB land-cover classification:
   Class 0: Water
   Class 1: Vegetation
@@ -68,7 +69,7 @@ class DenseLandCoverSegHead(nn.Module):
 
     def _init_spectral_weights(self) -> None:
         """
-        Initialize convolutional filters with physically calibrated spectral sensitivities:
+        Initialize convolutional filters with standard random initialization; spectral priors are applied separately by the deterministic segmentation pipeline:
         - Class 0 (Water): High absorption in Red/NIR, blue-green reflectance.
         - Class 1 (Vegetation): High green excess, red absorption, high NIR reflectance.
         - Class 2 (Built-up): High structural gradient response, red-edge backscatter.
@@ -117,7 +118,7 @@ def predict_dense_land_cover(
 ) -> Dict[str, Any]:
     """
     Computes dense multi-class land-cover probabilities and entropy uncertainty
-    using the learned segmentation neural network head.
+    using the experimental neural segmentation head. No trained checkpoint is loaded by default.
 
     Parameters
     ----------
@@ -189,7 +190,7 @@ def predict_dense_land_cover(
         "entropy": norm_entropy,
         "mean_entropy": round(float(norm_entropy.mean()), 4),
         "class_percentages": percentages,
-        "model": "DenseLandCoverSegHead (Learned CNN Encoder-Decoder, BigEarthNet Taxonomy)",
+        "model": "DenseLandCoverSegHead (Experimental CNN Encoder-Decoder; no trained checkpoint shipped)",
     }
 
 
