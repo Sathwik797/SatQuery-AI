@@ -16,10 +16,12 @@ def calibrate_sar_db(
     apply_lee: bool = True,
 ) -> np.ndarray:
     """
-    Convert raw Sentinel-1 / RISAT SAR DN values to calibrated backscatter (dB) scale:
-    sigma^0_dB = 10 * log10(DN^2 + eps) - calibration_factor_db
-    If the array is already in decibels (negative float distribution), preserves it directly!
-    Optionally applies an adaptive Lee speckle filter.
+    Convert SAR raster values to a dB-like intensity scale used by SatQuery's
+    heuristic detectors. For non-negative DN/intensity inputs the current
+    transformation is 10 * log10(DN^2 + eps) minus an optional offset.
+    This is NOT a full physical sigma0 calibration unless the source product's
+    radiometric calibration parameters are supplied. If the array is already
+    in decibels, it is preserved. Optionally applies an adaptive Lee filter.
     """
     arr = raw_band.astype(np.float32)
     valid = arr[np.isfinite(arr)]
