@@ -240,11 +240,14 @@ def run_benchmark_evaluation(
             "query": "Describe the land cover and main features in this remote sensing image.",
         }).json()
         pred_cap = res_cap.get("answer", "")
-        ref_cap = item.get("reference_caption") or item.get("prompt", "")
-        bleu = compute_bleu(pred_cap, ref_cap)
-        rouge = compute_rouge_l(pred_cap, ref_cap)
-        cap_bleus.append(bleu.get("bleu_1", 0.0))
-        cap_rouges.append(rouge)
+        ref_cap = item.get("reference_caption")
+        # Do not evaluate a caption against the referring prompt/question.
+        # Missing reference captions are excluded from caption metrics.
+        if ref_cap:
+            bleu = compute_bleu(pred_cap, ref_cap)
+            rouge = compute_rouge_l(pred_cap, ref_cap)
+            cap_bleus.append(bleu.get("bleu_1", 0.0))
+            cap_rouges.append(rouge)
 
         # 2c. Active VRSBench VQA Evaluation on Authentic VRSBench Imagery
         vrs_category = item.get("category", "object")
@@ -278,8 +281,8 @@ def run_benchmark_evaluation(
 
     avg_iou = round(sum(ious) / max(len(ious), 1), 4)
     avg_p50 = round(sum(p50_list) / max(len(p50_list), 1) * 100.0, 1)
-    avg_b1 = round(sum(cap_bleus) / max(len(cap_bleus), 1), 1)
-    avg_rouge = round(sum(cap_rouges) / max(len(cap_rouges), 1), 1)
+    avg_b1 = round(sum(cap_bleus) / len(cap_bleus), 1) if cap_bleus else None
+    avg_rouge = round(sum(cap_rouges) / len(cap_rouges), 1) if cap_rouges else None
     vrs_vqa_metrics = compute_vqa_accuracy(vrs_vqa_preds, vrs_vqa_gts)
     vrs_vqa_acc = vrs_vqa_metrics["overall_accuracy"]
 
@@ -302,9 +305,10 @@ def run_benchmark_evaluation(
             "mean_iou": avg_iou,
             "precision_at_50": avg_p50,
             "evaluated_boxes": len(p50_list),
+            "caption_references_used": len(cap_bleus),
         },
         "latency_sec": round(time.time() - t0, 3),
-        "status": "PASSED" if (avg_p50 >= 25.0 or (avg_rouge >= 25.0 and avg_b1 >= 15.0) or vrs_vqa_acc >= 60.0) else ("MARGINAL" if (avg_p50 >= 10.0 or avg_rouge >= 10.0 or avg_b1 >= 5.0) else "FAIL"),
+        "status": "PASSED" if (avg_p50 >= 25.0 or (avg_rouge is not None and avg_b1 is not None and avg_rouge >= 25.0 and avg_b1 >= 15.0) or vrs_vqa_acc >= 60.0) else ("MARGINAL" if (avg_p50 >= 10.0 or (avg_rouge is not None and avg_rouge >= 10.0) or (avg_b1 is not None and avg_b1 >= 5.0)) else "FAIL"),
     }
 
     # ============================================================
