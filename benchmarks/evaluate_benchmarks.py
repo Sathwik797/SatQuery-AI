@@ -232,7 +232,8 @@ def run_benchmark_evaluation(
         pred_loc = res_ground.get("grounding_location")
         grounding_eval = compute_grounding_metrics(pred_bbox, pred_loc, None, gt_bbox=gt_box)
         ious.append(grounding_eval["iou"])
-        p50_list.append(grounding_eval["precision_at_50"])
+        if grounding_eval["precision_at_50"] is not None:
+            p50_list.append(grounding_eval["precision_at_50"])
 
         # 2b. Captioning Evaluation on Authentic VRSBench Imagery using authentic reference caption
         res_cap = client.post("/api/analyze", json={
@@ -280,7 +281,7 @@ def run_benchmark_evaluation(
         })
 
     avg_iou = round(sum(ious) / max(len(ious), 1), 4)
-    avg_p50 = round(sum(p50_list) / max(len(p50_list), 1) * 100.0, 1)
+    avg_p50 = round(sum(p50_list) / len(p50_list) * 100.0, 1) if p50_list else None
     avg_b1 = round(sum(cap_bleus) / len(cap_bleus), 1) if cap_bleus else None
     avg_rouge = round(sum(cap_rouges) / len(cap_rouges), 1) if cap_rouges else None
     vrs_vqa_metrics = compute_vqa_accuracy(vrs_vqa_preds, vrs_vqa_gts)
@@ -304,11 +305,12 @@ def run_benchmark_evaluation(
             "total_available_referring_targets": catalog.get("vrsbench_ref_total", 16159),
             "mean_iou": avg_iou,
             "precision_at_50": avg_p50,
+            "ground_truth_boxes_evaluated": len(p50_list),
             "evaluated_boxes": len(p50_list),
             "caption_references_used": len(cap_bleus),
         },
         "latency_sec": round(time.time() - t0, 3),
-        "status": "PASSED" if (avg_p50 >= 25.0 or (avg_rouge is not None and avg_b1 is not None and avg_rouge >= 25.0 and avg_b1 >= 15.0) or vrs_vqa_acc >= 60.0) else ("MARGINAL" if (avg_p50 >= 10.0 or (avg_rouge is not None and avg_rouge >= 10.0) or (avg_b1 is not None and avg_b1 >= 5.0)) else "FAIL"),
+        "status": "PASSED" if ((avg_p50 is not None and avg_p50 >= 25.0) or (avg_rouge is not None and avg_b1 is not None and avg_rouge >= 25.0 and avg_b1 >= 15.0) or vrs_vqa_acc >= 60.0) else ("MARGINAL" if ((avg_p50 is not None and avg_p50 >= 10.0) or (avg_rouge is not None and avg_rouge >= 10.0) or (avg_b1 is not None and avg_b1 >= 5.0)) else "FAIL"),
     }
 
     # ============================================================
