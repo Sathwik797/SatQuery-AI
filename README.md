@@ -10,7 +10,7 @@ pinned: false
 
 # SatQuery AI
 
-**SatQuery AI** is an agentic, query-driven vision-language platform engineered for multimodal Earth Observation (EO) and remote-sensing image understanding. It dynamically synthesizes multi-step execution plans to orchestrate a domain-adapted vision-language backbone (`GeoRSCLIP` + trained `RSVQA` MLP adapter + `DenseLandCoverSegHead`) alongside modular geospatial spectral and radar processing engines.
+**SatQuery AI** is an agentic, query-driven vision-language platform engineered for multimodal Earth Observation (EO) and remote-sensing image understanding. It dynamically synthesizes multi-step execution plans to orchestrate a domain-adapted vision-language backbone (`GeoRSCLIP` + trained `RSVQA` MLP adapter) alongside deterministic geospatial, spectral, radar, and segmentation engines alongside modular geospatial spectral and radar processing engines.
 
 ---
 
@@ -18,7 +18,7 @@ pinned: false
 
 Remote-sensing imagery—spanning multispectral optical bands and Synthetic Aperture Radar (SAR)—provides invaluable observations of Earth's surface. However, extracting actionable intelligence traditionally requires deep GIS expertise, manual band arithmetic (NDWI, NDVI, NDBI), radar speckle filtering, radiometric calibration, and specialized desktop software. Non-specialist decision makers (e.g., disaster response coordinators, urban planners, environmental monitors) often face steep technical barriers.
 
-**SatQuery AI** addresses this challenge by providing a unified, conversational natural-language interface for satellite imagery. Users can upload raw GeoTIFF or standard images, or select from curated real-world presets, and ask complex spatial, spectral, or temporal questions in plain English. The platform automatically determines user intent, validates CRS and footprint compatibility, selects and executes specialist tools, calibrates confidence scores, and delivers an auditable textual response supported by interactive visual overlays, spatial bounding boxes, WGS84 geographic centroids, and downloadable JSON audit reports.
+**SatQuery AI** addresses this challenge by providing a unified, conversational natural-language interface for satellite imagery. Users can upload raw GeoTIFF or standard images, or select from curated real-world presets, and ask complex spatial, spectral, or temporal questions in plain English. The platform automatically determines user intent, validates CRS and footprint compatibility, selects and executes specialist tools, reports model/heuristic confidence scores, and delivers an auditable textual response supported by interactive visual overlays, spatial bounding boxes, WGS84 geographic centroids, and downloadable JSON audit reports.
 
 ---
 
@@ -35,13 +35,13 @@ Remote-sensing imagery—spanning multispectral optical bands and Synthetic Aper
 
 ### Implemented
 - **Single-Image Remote-Sensing VQA**: Answers natural-language questions regarding land-cover presence, scene characteristics, and urban vs. rural classification using `GeoRSCLIP` ViT-B/32 paired with a trained 50-class `RSVQA` MLP adapter.
-- **Dense Multi-Class Semantic Segmentation**: Neural-spectral segmentation via `DenseLandCoverSegHead` (lightweight Convolutional Encoder-Decoder) fused with Bayesian Maximum A Posteriori (MAP) spectral log-priors, classifying pixels into **Water** (Blue), **Vegetation** (Green), **Built-up** (Red), and **Bare / Desert / Sand** (Golden Sand), alongside Shannon entropy uncertainty maps.
+- **Dense Multi-Class Semantic Segmentation**: Deterministic spectral segmentation using NDWI / NDVI / NDBI and RGB heuristics, classifying pixels into **Water**, **Vegetation**, **Built-up**, and **Bare / Desert / Sand**. An experimental `DenseLandCoverSegHead` is included in the codebase but is not used for production segmentation because a trained checkpoint is not currently shipped.
 - **Deterministic Radiometric & Spectral Indices**: Automated calculation of physical remote-sensing indices:
   - **NDWI** (Normalized Difference Water Index) for surface water delineation.
   - **NDVI** (Normalized Difference Vegetation Index) for biomass and canopy health.
   - **NDBI** (Normalized Difference Built-up Index) and structural gradient analysis for urban footprint detection.
 - **Synthetic Aperture Radar (SAR) Processing**:
-  - Linear digital number (DN) to calibrated backscatter in decibels ($\text{dB} = 10 \cdot \log_{10}(\text{intensity})$).
+  - DN/intensity to dB-like SAR normalization ($\text{dB} = 10 \cdot \log_{10}(\text{DN}^2 + \epsilon)$); this is not presented as full physical $\sigma^0$ calibration without source-product calibration parameters.
   - Spatial Lee speckle filtering to suppress multiplicative granular noise.
   - Dielectric thresholding for specular low-backscatter water bodies ($< -15\text{ dB}$) and double-bounce urban structures ($> -6\text{ dB}$).
 - **Bi-Temporal Change Analysis (T1 vs. T2)**:
@@ -121,7 +121,7 @@ flowchart TD
 3. **Specialist Tool Execution**:
    - The backend executes each step via registered handlers in `models/registry.py`.
    - Spectral indices (NDWI, NDVI, NDBI) and calibrated SAR backscatter masks are generated.
-   - For segmentation, neural logits from `DenseLandCoverSegHead` are blended with spectral log-priors using Bayesian MAP estimation.
+   - For segmentation, deterministic NDWI / NDVI / NDBI / RGB heuristics are used in the production path. The experimental neural head remains isolated until a trained checkpoint is available.
    - For VQA, GeoRSCLIP visual and text embeddings are passed through the trained `RSVQAAdapter` to yield top-k predictions with calibrated confidence.
 4. **Evidence & Audit Synthesis**:
    - Generates visual evidence overlays (PNG preview, difference masks, bounding box annotations).
@@ -139,7 +139,7 @@ flowchart TD
 | **Multi-Temporal Change** | Footprint overlap verification, chronological sorting, pixel-level radiometric difference, Otsu/adaptive thresholding, directional change reasoning (increase/decrease/unchanged), $\Delta\%$ and hectare area shifts, dual-color overlays. | `geospatial/change_detector.py` |
 | **Optical + SAR Fusion** | Co-registered cross-modal consensus analysis, Fourier phase correlation and ECC affine refinement, multi-sensor agreement scoring. | `geospatial/fusion.py`, `geospatial/coregistration.py` |
 | **Visual Question Answering (VQA)** | Land-cover presence verification, urban vs. rural classification, counting queries, top-5 prediction ranking, entropy-calibrated confidence scores. | `models/rs_vlm.py`, `models/checkpoints/satquery_rs_model/` |
-| **Semantic Segmentation** | 4-class dense classification (Water, Vegetation, Built-up, Bare/Sand) combining CNN encoder-decoder with physical spectral log-priors. | `models/land_cover_head.py`, `geospatial/multi_class_segmenter.py` |
+| **Semantic Segmentation** | 4-class deterministic spectral classification (Water, Vegetation, Built-up, Bare/Sand) using NDWI / NDVI / NDBI / RGB heuristics. Experimental CNN head is retained separately without a trained checkpoint. | `geospatial/multi_class_segmenter.py`, `models/land_cover_head.py` |
 | **Visual Grounding** | Patch-based open-vocabulary localization, bounding box coordinates, WGS84 centroid computation, contour extraction. | `geospatial/clip_grounding.py` |
 | **Scene Captioning** | Multi-attribute natural-language scene summary with 5 cardinal sector spatial breakdowns (North, South, East, West, Center). | `geospatial/scene_captioner.py` |
 
@@ -151,7 +151,7 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **RS-VLM Backbone** | GeoRSCLIP ViT-B/32 (`BiliSakura/GeoRSCLIP-ViT-B-32`) | PyTorch, `open-clip-torch` | `models/rs_vlm.py` | Pretrained remote-sensing vision-language foundation model loaded via OpenCLIP. |
 | **RSVQA Adapter** | 2-Layer MLP Classifier (`input_dim=1024`, `hidden_dim=512`, `num_classes=50`) | PyTorch | `models/rs_vlm.py`, `models/checkpoints/satquery_rs_model/adapter.pt` | Trained on RSVQA-LR-2k dataset with Cross-Entropy Loss, mapping concatenated image-text embeddings to 50 remote-sensing answer classes. |
-| **DenseLandCoverSegHead** | Lightweight Convolutional Encoder-Decoder with residual bottleneck | PyTorch | `models/land_cover_head.py` | Initialized with physically calibrated spectral filters; ensembled with physical index priors (NDWI, NDVI, NDBI) via Bayesian MAP inference. |
+| **DenseLandCoverSegHead** | Lightweight Convolutional Encoder-Decoder with residual bottleneck | PyTorch | `models/land_cover_head.py` | Experimental component; weights are initialized at runtime and no trained checkpoint is currently shipped. |
 | **Deterministic GIS Engines** | Physics-based spectral arithmetic, Fourier phase correlation, affine transformation | NumPy, OpenCV, Rasterio, Pyproj, Shapely | `geospatial/` | Deterministic mathematical algorithms operating on raster pixel arrays and CRS projection matrices. |
 
 ---
