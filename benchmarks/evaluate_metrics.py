@@ -221,7 +221,7 @@ def compute_grounding_metrics(
 
     # Precision@0.5 strictly requires reference box IoU >= 0.50
     # If no ground truth box is provided or IoU < 0.50, precision_at_50 is 0.0
-    precision_at_50 = 1.0 if (iou >= 0.50) else 0.0
+    precision_at_50 = None if not g_box else (1.0 if iou >= 0.50 else 0.0)
 
     return {
         "location_agreement": loc_match,
